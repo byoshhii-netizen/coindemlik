@@ -3,17 +3,29 @@ const socket = io();
 let kullanici = null;
 let grafikGecmis = [];
 let hedefGecmis = [];
-let aktifBahis = null;
+let aktifPozisyon = null; // bahis -> pozisyon
 let canvas, ctx;
 let coinIsmi = 'DemliCoin';
 let coinKisaltma = 'DC';
-let minBahis = 150;
+let minPozisyon = 150;
 let animFrame = null;
 let animBaslangic = null;
 const ANIM_SURE = 500;
 let eskiGecmis = [];
 let turBitis = null;
 let turInterval = null;
+
+// ─── TOAST (SAĞ ALT BİLDİRİM) ───
+function sagAltBildirim(mesaj, tip, sure) {
+  sure = sure || 3500;
+  const kap = document.getElementById('sag-alt-bildirimler');
+  if (!kap) return;
+  const el = document.createElement('div');
+  el.className = `sab-item sab-${tip || 'bilgi'}`;
+  el.innerHTML = `<span class="sab-metin">${escapeHtml(mesaj)}</span><button class="sab-kapat" onclick="this.parentElement.remove()">×</button>`;
+  kap.appendChild(el);
+  setTimeout(() => { el.classList.add('sab-cikis'); setTimeout(() => el.remove(), 400); }, sure);
+}
 
 // ─── INIT ───
 async function init() {
@@ -23,12 +35,12 @@ async function init() {
     if (sad.basari) {
       coinIsmi = sad.ayar.coin_ismi || 'DemliCoin';
       coinKisaltma = sad.ayar.coin_kisaltma || 'DC';
-      minBahis = sad.ayar.min_bahis || 150;
+      minPozisyon = sad.ayar.min_bahis || 150;
       document.title = coinIsmi;
       const lt = document.getElementById('logo-text'); if (lt) lt.textContent = coinIsmi;
       const gs = document.getElementById('grafik-sembol'); if (gs) gs.textContent = `${coinKisaltma} / JETON`;
-      const minEl = document.getElementById('min-bahis-goster'); if (minEl) minEl.textContent = `Min: ${minBahis}`;
-      const bi = document.getElementById('bahis-miktar'); if (bi) { bi.min = minBahis; bi.value = minBahis; }
+      const minEl = document.getElementById('min-bahis-goster'); if (minEl) minEl.textContent = `Min: ${minPozisyon}`;
+      const bi = document.getElementById('bahis-miktar'); if (bi) { bi.min = minPozisyon; bi.value = minPozisyon; }
     }
   } catch(e) {}
 
@@ -41,6 +53,8 @@ async function init() {
       itemBarGuncelle(d.itemler);
       document.getElementById('giris-uyari').style.display = 'none';
       document.getElementById('bahis-panel').style.display = 'block';
+      // Aktif pozisyonu localStorage'dan yükle
+      pozisyonYukle();
     }
   }
 
@@ -68,7 +82,7 @@ async function init() {
     socket.emit('auth', { kullanici_id: kullanici.id });
     const cr = await fetch('/api/chat/gecmis');
     const cd = await cr.json();
-    if (cd.basari) { cd.mesajlar.forEach(m => chatEkle(m.id, m.nick, m.mesaj, m.tarih, m.jeton, m.renk, m.sira)); chatKaydirAsagi(); }
+    if (cd.basari) { cd.mesajlar.forEach(m => chatEkle(m.id, m.nick, m.mesaj, m.tarih, m.jeton, m.renk, m.sira, m.celik_kart)); chatKaydirAsagi(); }
   }
 
   // Duyurular
@@ -77,6 +91,40 @@ async function init() {
   if (dd.basari) dd.duyurular.forEach(d => duyuruGoster(d));
 
   document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') mesajGonder(); });
+}
+
+// ─── POZİSYON PERSIST (localStorage) ───
+function pozisyonKaydet() {
+  if (!kullanici || !aktifPozisyon) return;
+  localStorage.setItem(`pozisyon_${kullanici.id}`, JSON.stringify(aktifPozisyon));
+}
+
+function pozisyonYukle() {
+  if (!kullanici) return;
+  const kayitli = localStorage.getItem(`pozisyon_${kullanici.id}`);
+  if (!kayitli) return;
+  try {
+    const p = JSON.parse(kayitli);
+    if (!p || !p.id || !p.girdigiDeger) return;
+    // Tur bitip bitmediğini kontrol et
+    if (turBitis && Date.now() >= turBitis) {
+      localStorage.removeItem(`pozisyon_${kullanici.id}`);
+      return;
+    }
+    aktifPozisyon = p;
+    document.getElementById('bas-btn').style.display = 'none';
+    document.getElementById('sat-btn').style.display = 'block';
+    document.getElementById('bahis-panel').classList.add('aktif-pozisyon');
+    document.getElementById('giris-degeri').textContent = p.girdigiDeger.toFixed(2);
+    document.getElementById('aktif-bilgi-wrap').style.display = 'flex';
+    document.querySelectorAll('.item-chip').forEach(c => c.classList.add('item-parlak'));
+  } catch(e) {
+    localStorage.removeItem(`pozisyon_${kullanici.id}`);
+  }
+}
+
+function pozisyonTemizle() {
+  if (kullanici) localStorage.removeItem(`pozisyon_${kullanici.id}`);
 }
 
 function guncelleBilgi() {
@@ -102,11 +150,9 @@ function turSayacBaslat() {
     const ring = document.getElementById('tur-ring');
     if (!el) return;
 
-    const ayarSuresi = 60; // fallback
-    const oran = kalan / ayarSuresi;
+    const ayarSuresi = 60;
     el.textContent = kalan > 0 ? `${kalan}s` : '—';
 
-    // Ring rengi
     if (kalan <= 10) { el.style.color = '#ef4444'; if (ring) ring.style.borderColor = '#ef4444'; }
     else if (kalan <= 20) { el.style.color = '#f0b429'; if (ring) ring.style.borderColor = '#f0b429'; }
     else { el.style.color = '#10b981'; if (ring) ring.style.borderColor = '#10b981'; }
@@ -130,18 +176,19 @@ socket.on('tur_basladi', (data) => {
   turBitis = data.turBitis;
   turSayacBaslat();
   turBildirim('YENİ TUR BAŞLADI', true);
+  sagAltBildirim('Yeni tur başladı — pozisyon aç!', 'basari', 4000);
 });
 
 socket.on('tur_bitti', () => {
   turBildirim('TUR BİTTİ', false);
-  // Aktif bahis varsa zorla sat
-  if (aktifBahis) zorunluSat();
+  sagAltBildirim('Tur sona erdi.', 'uyari', 4000);
+  if (aktifPozisyon) zorunluSat();
 });
 
 socket.on('oyuncu_listesi', oyuncuListesiGoster);
 
 socket.on('chat_mesaj', (data) => {
-  chatEkle(data.id, data.nick, data.mesaj, data.tarih, data.jeton, data.renk, data.sira);
+  chatEkle(data.id, data.nick, data.mesaj, data.tarih, data.jeton, data.renk, data.sira, data.celik_kart);
   chatKaydirAsagi();
 });
 
@@ -168,6 +215,31 @@ socket.on('mevcut_duyurular', (duyurular) => duyurular.forEach(d => duyuruGoster
 socket.on('duyuru_silindi', (data) => {
   const el = document.getElementById(`duyuru-${data.id}`);
   if (el) el.remove();
+});
+
+// Çelik kart broadcast
+socket.on('celik_kart_alindi', (data) => {
+  sagAltBildirim(`💎 ${data.nick} Çelik Kart aldı!`, 'celik', 6000);
+  const chatDiv = document.getElementById('chat-mesajlar');
+  if (chatDiv) {
+    const el = document.createElement('div');
+    el.className = 'chat-satir celik-duyuru';
+    el.innerHTML = `<span class="celik-mesaj">💎 <strong>${escapeHtml(data.nick)}</strong> Çelik Kartını kullandı!</span>`;
+    chatDiv.appendChild(el);
+    chatKaydirAsagi();
+  }
+});
+
+socket.on('celik_kart_kazandi', (data) => {
+  sagAltBildirim(`💎 ${data.nick} — Çelik Kart ile +${data.miktar ? data.miktar.toLocaleString('tr-TR') : '?'} jeton kazandı!`, 'celik', 5000);
+  const chatDiv = document.getElementById('chat-mesajlar');
+  if (chatDiv) {
+    const el = document.createElement('div');
+    el.className = 'chat-satir celik-duyuru';
+    el.innerHTML = `<span class="celik-mesaj">💎 <strong>${escapeHtml(data.nick)}</strong> Çelik Kartıyla <strong>+${data.miktar ? data.miktar.toLocaleString('tr-TR') : '?'} jeton</strong> kazandı!</span>`;
+    chatDiv.appendChild(el);
+    chatKaydirAsagi();
+  }
 });
 
 // ─── TUR BİTTİ BİLDİRİM ───
@@ -198,6 +270,9 @@ function animAdim(timestamp) {
   else { grafikGecmis = hedefGecmis; grafikCiz(); }
 }
 
+// Çay kırmızısı: #c0392b benzeri, zengin koyu kırmızı
+const CAY_KIRMIZISI = '180,40,40';
+
 function grafikCiz() {
   if (!canvas || !ctx || grafikGecmis.length < 2) return;
   const w = canvas.width, h = canvas.height;
@@ -222,12 +297,11 @@ function grafikCiz() {
     ctx.fillText((maxD - (aralik / 4) * i).toFixed(0), padL - 6, y + 4);
   }
 
-  const ilk = degerler[0], son = degerler[degerler.length - 1];
-  const yesil = son >= ilk;
-  const rgb = yesil ? '16,185,129' : '239,68,68';
+  // Hat her zaman çay kırmızısı
+  const rgb = CAY_KIRMIZISI;
 
   const grad = ctx.createLinearGradient(0, padT, 0, padT + gH);
-  grad.addColorStop(0, `rgba(${rgb},0.25)`);
+  grad.addColorStop(0, `rgba(${rgb},0.22)`);
   grad.addColorStop(1, `rgba(${rgb},0.01)`);
   ctx.beginPath();
   grafikGecmis.forEach((p, i) => {
@@ -235,6 +309,7 @@ function grafikCiz() {
     const y = padT + gH - ((p.deger - minD) / aralik) * gH;
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   });
+  const sonD = degerler[degerler.length - 1];
   ctx.lineTo(padL + gW, padT + gH); ctx.lineTo(padL, padT + gH); ctx.closePath();
   ctx.fillStyle = grad; ctx.fill();
 
@@ -248,24 +323,24 @@ function grafikCiz() {
   });
   ctx.stroke();
 
-  // Son nokta + değer etiketi
+  // Son nokta
   const lastX = padL + gW;
-  const lastY = padT + gH - ((son - minD) / aralik) * gH;
+  const lastY = padT + gH - ((sonD - minD) / aralik) * gH;
   ctx.beginPath(); ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
   ctx.fillStyle = `rgb(${rgb})`; ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke();
 
-  // Sağda fiyat etiketi
+  // Fiyat etiketi
   ctx.fillStyle = `rgba(${rgb},0.9)`;
   ctx.fillRect(lastX + 6, lastY - 10, 52, 20);
   ctx.fillStyle = '#fff';
   ctx.font = '700 11px JetBrains Mono, monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(son.toFixed(1), lastX + 10, lastY + 4);
+  ctx.fillText(sonD.toFixed(1), lastX + 10, lastY + 4);
 
-  // Aktif bahis giriş çizgisi
-  if (aktifBahis && aktifBahis.girdigiDeger) {
-    const girisY = padT + gH - ((aktifBahis.girdigiDeger - minD) / aralik) * gH;
+  // Aktif pozisyon giriş çizgisi
+  if (aktifPozisyon && aktifPozisyon.girdigiDeger) {
+    const girisY = padT + gH - ((aktifPozisyon.girdigiDeger - minD) / aralik) * gH;
     if (girisY >= padT && girisY <= padT + gH) {
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = 'rgba(240,180,41,0.6)';
@@ -275,7 +350,7 @@ function grafikCiz() {
       ctx.fillStyle = 'rgba(240,180,41,0.85)';
       ctx.font = '600 10px JetBrains Mono, monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`Giris: ${aktifBahis.girdigiDeger.toFixed(1)}`, padL + 4, girisY - 4);
+      ctx.fillText(`Giris: ${aktifPozisyon.girdigiDeger.toFixed(1)}`, padL + 4, girisY - 4);
     }
   }
 }
@@ -285,31 +360,33 @@ function mevcutDegerGuncelle(deger) {
   const eski = parseFloat(el.dataset.deger || deger);
   el.dataset.deger = deger;
   el.textContent = deger.toFixed(2);
-  el.className = 'canli-deger mono ' + (deger >= eski ? 'deger-yesil' : 'deger-kirmizi');
+  // Renk her zaman çay kırmızısı (değer yönü için hafif ton)
+  el.className = 'canli-deger mono deger-cay';
 
-  // Anlık P&L göster
-  if (aktifBahis) anlikPLGuncelle(deger);
+  if (aktifPozisyon) anlikPLGuncelle(deger);
 }
 
 function anlikPLGuncelle(mevcutDeger) {
-  if (!aktifBahis) return;
+  if (!aktifPozisyon) return;
   const el = document.getElementById('anlik-pl');
   if (!el) return;
-  const oran = (mevcutDeger - aktifBahis.girdigiDeger) / aktifBahis.girdigiDeger;
-  const kazanc = Math.round(aktifBahis.miktar * oran);
+  const oran = (mevcutDeger - aktifPozisyon.girdigiDeger) / aktifPozisyon.girdigiDeger;
+  const CARPAN = 5;
+  let kazanc = Math.round(aktifPozisyon.miktar * oran * CARPAN);
+  if (aktifPozisyon.celikKart && kazanc > 0) kazanc = kazanc * 4;
   el.textContent = kazanc >= 0 ? `+${kazanc.toLocaleString('tr-TR')}` : kazanc.toLocaleString('tr-TR');
   el.className = 'anlik-pl ' + (kazanc >= 0 ? 'pl-pozitif' : 'pl-negatif');
 }
 
-// ─── BAHİS ───
+// ─── POZİSYON (eskisi bahis) ───
 async function basBahistePara() {
   if (!kullanici) { window.location.href = '/kayit'; return; }
-  if (aktifBahis) { bildirimGoster('Zaten aktif pozisyon var!', false); return; }
+  if (aktifPozisyon) { bildirimGoster('Zaten aktif pozisyon var!', false); return; }
   if (turBitis && Date.now() >= turBitis) { bildirimGoster('Tur bitti, yeni tur bekle!', false); return; }
 
   const miktar = parseInt(document.getElementById('bahis-miktar').value);
   if (!miktar || miktar < 1) { bildirimGoster('Gecerli miktar girin!', false); return; }
-  if (miktar < minBahis) { bildirimGoster(`Minimum bahis ${minBahis.toLocaleString('tr-TR')} jetondur!`, false); return; }
+  if (miktar < minPozisyon) { bildirimGoster(`Minimum ${minPozisyon.toLocaleString('tr-TR')} jetondur!`, false); return; }
   if (miktar > kullanici.jeton) { bildirimGoster('Yetersiz jeton!', false); return; }
 
   const r = await fetch('/api/bahis', {
@@ -319,7 +396,9 @@ async function basBahistePara() {
   const d = await r.json();
   if (!d.basari) { bildirimGoster(d.mesaj, false); return; }
 
-  aktifBahis = { id: d.bahisId, miktar, girdigiDeger: d.girdigiDeger };
+  const celikKart = kullanici.celik_kart ? true : false;
+  aktifPozisyon = { id: d.bahisId, miktar, girdigiDeger: d.girdigiDeger, celikKart };
+  pozisyonKaydet();
   kullanici.jeton -= miktar;
   guncelleBilgi();
 
@@ -329,43 +408,48 @@ async function basBahistePara() {
   document.getElementById('giris-degeri').textContent = d.girdigiDeger.toFixed(2);
   document.getElementById('aktif-bilgi-wrap').style.display = 'flex';
   document.querySelectorAll('.item-chip').forEach(c => c.classList.add('item-parlak'));
-  bildirimGoster(`Pozisyon acildi — ${miktar.toLocaleString('tr-TR')} jeton @ ${d.girdigiDeger.toFixed(2)}`, true);
+  bildirimGoster(`Pozisyon açıldı — ${miktar.toLocaleString('tr-TR')} jeton @ ${d.girdigiDeger.toFixed(2)}`, true);
 }
 
 async function satisYap() {
-  if (!aktifBahis) return;
+  if (!aktifPozisyon) return;
   const r = await fetch('/api/sat', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bahis_id: aktifBahis.id })
+    body: JSON.stringify({ bahis_id: aktifPozisyon.id })
   });
   const d = await r.json();
   if (!d.basari) { bildirimGoster(d.mesaj, false); return; }
   kullanici.jeton = d.yeniJeton;
   guncelleBilgi();
   sonucGoster(d.kazanc);
-  resetBahis();
+  // Sağ alt bildirim
+  if (d.kazanc > 0) sagAltBildirim(`+${d.kazanc.toLocaleString('tr-TR')} jeton kazandın!`, 'basari');
+  else if (d.kazanc < 0) sagAltBildirim(`${d.kazanc.toLocaleString('tr-TR')} jeton kaybettin.`, 'hata');
+  resetPozisyon();
   const info = await fetch('/api/benim-bilgilerim');
   const iData = await info.json();
-  if (iData.basari) itemBarGuncelle(iData.itemler);
+  if (iData.basari) { itemBarGuncelle(iData.itemler); kullanici = iData.kullanici; }
 }
 
 async function zorunluSat() {
-  if (!aktifBahis) return;
+  if (!aktifPozisyon) return;
   const r = await fetch('/api/sat', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bahis_id: aktifBahis.id, zorunlu: true })
+    body: JSON.stringify({ bahis_id: aktifPozisyon.id, zorunlu: true })
   });
   const d = await r.json();
   if (d.basari) {
     kullanici.jeton = d.yeniJeton;
     guncelleBilgi();
     sonucGoster(d.kazanc, true);
-    resetBahis();
+    sagAltBildirim(`Tur bitti — ${d.kazanc >= 0 ? '+' : ''}${d.kazanc.toLocaleString('tr-TR')} jeton`, d.kazanc >= 0 ? 'basari' : 'hata');
+    resetPozisyon();
   }
 }
 
-function resetBahis() {
-  aktifBahis = null;
+function resetPozisyon() {
+  aktifPozisyon = null;
+  pozisyonTemizle();
   document.getElementById('bas-btn').style.display = 'block';
   document.getElementById('sat-btn').style.display = 'none';
   document.getElementById('bahis-panel').classList.remove('aktif-pozisyon');
@@ -410,7 +494,6 @@ function duyuruGoster(d) {
   kapsayici.appendChild(el);
   aktifDuyurular.set(d.id, el);
 
-  // Otomatik kapat (sure_dk > 0 ise)
   if (d.sure_dk > 0) {
     setTimeout(() => duyuruKapat(d.id), d.sure_dk * 60 * 1000);
   }
@@ -445,11 +528,13 @@ function itemBarGuncelle(itemler) {
   if (!bar) return;
   bar.innerHTML = '';
   if (!itemler || itemler.length === 0) return;
-  const isimler = { 'iki_kat_kar': '2X KAR', 'zarar_kalkan': 'ZARAR KALKANI', 'para_kopar': 'PARA KOPAR' };
+  const isimler = { 'iki_kat_kar': '2X KAR', 'zarar_kalkan': 'ZARAR KALKANI', 'para_kopar': 'PARA KOPAR', 'celik_kart': '💎 ÇELİK KART' };
   itemler.forEach(item => {
     const div = document.createElement('div');
-    div.className = 'item-chip';
-    div.innerHTML = `<span class="item-chip-isim">${isimler[item.item_kod] || item.item_kod}</span><span class="item-chip-sayi">${item.kalan_kullanim}x</span>`;
+    const isCelik = item.item_kod === 'celik_kart';
+    div.className = 'item-chip' + (isCelik ? ' item-celik' : '');
+    const sayiLabel = isCelik ? '∞' : `${item.kalan_kullanim}x`;
+    div.innerHTML = `<span class="item-chip-isim">${isimler[item.item_kod] || item.item_kod}</span><span class="item-chip-sayi">${sayiLabel}</span>`;
     if (item.item_kod === 'para_kopar') div.onclick = () => paraKopar();
     bar.appendChild(div);
   });
@@ -477,11 +562,11 @@ function oyuncuListesiGoster(oyuncular) {
   liste.innerHTML = '';
   [...oyuncular].sort((a, b) => b.jeton - a.jeton).forEach(o => {
     const benim = kullanici && o.id === kullanici.id;
-    const renk = o.renk || nickRenkAl(o.nick);
+    const renk = o.celik_kart ? '#b8e0ff' : (o.renk || nickRenkAl(o.nick));
     const div = document.createElement('div');
-    div.className = 'oyuncu-satir' + (benim ? ' benim-oyuncu' : '');
+    div.className = 'oyuncu-satir' + (benim ? ' benim-oyuncu' : '') + (o.celik_kart ? ' celik-oyuncu' : '');
     div.innerHTML = `
-      <span class="oyuncu-nick" style="color:${renk}">${benim ? '▶ ' : ''}${escapeHtml(o.nick)}</span>
+      <span class="oyuncu-nick" style="color:${renk}">${o.celik_kart ? '💎 ' : ''}${benim ? '▶ ' : ''}${escapeHtml(o.nick)}</span>
       <span class="oyuncu-jeton mono"><img src="/coin.svg" class="coin-img" style="width:11px;height:11px;vertical-align:middle;margin-right:2px;" />${o.jeton.toLocaleString('tr-TR')}</span>
     `;
     liste.appendChild(div);
@@ -496,17 +581,20 @@ function nickRenkAl(nick) {
 }
 
 // ─── CHAT ───
-function chatEkle(id, nick, mesaj, tarih, jeton, renk, sira) {
+function chatEkle(id, nick, mesaj, tarih, jeton, renk, sira, celikKart) {
   const div = document.getElementById('chat-mesajlar');
   if (!div) return;
   const saatStr = new Date(tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   const benim = kullanici && nick === kullanici.nick;
-  const nickRenk = renk || nickRenkAl(nick);
+  const nickRenk = celikKart ? '#b8e0ff' : (renk || nickRenkAl(nick));
   const el = document.createElement('div');
-  el.className = 'chat-satir' + (benim ? ' benim-chat' : '');
+  el.className = 'chat-satir' + (benim ? ' benim-chat' : '') + (celikKart ? ' celik-chat' : '');
   el.id = `cm-${id}`;
+  const celikRozet = celikKart ? `<span class="celik-rozet">💎</span>` : '';
+  const x4Rozet = celikKart ? `<span class="x4-rozet">x4</span>` : '';
   el.innerHTML = `
     <span class="chat-zaman">${saatStr}</span>
+    ${celikRozet}${x4Rozet}
     <span class="chat-nick" style="color:${nickRenk}">${escapeHtml(nick)}</span>
     <span class="chat-meta">#${sira||'?'} · ${(jeton||0).toLocaleString('tr-TR')}</span>
     <span class="chat-metin">${escapeHtml(mesaj)}</span>

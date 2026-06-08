@@ -143,6 +143,7 @@
         'iki_kat_kar':   { etiket: '2X', renk: '#f0b429', acik: 'rgba(240,180,41,0.08)' },
         'zarar_kalkan':  { etiket: 'KLK', renk: '#60a5fa', acik: 'rgba(96,165,250,0.08)' },
         'para_kopar':    { etiket: 'ROB', renk: '#f87171', acik: 'rgba(248,113,113,0.08)' },
+        'celik_kart':    { etiket: '💎', renk: '#b8e0ff', acik: 'rgba(184,224,255,0.08)' },
       };
       d.itemlar.forEach(item => {
         const m = meta[item.kod] || { etiket: 'ITM', renk: '#a78bfa', acik: 'rgba(167,139,250,0.08)' };
@@ -222,6 +223,8 @@
       msg.innerHTML = '<div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:14px;font-size:13px;color:#8899bb;text-align:center;">Odeme altyapisi aktif degil. Lutfen yoneticiyle iletisime gecin.</div>';
       msg.style.display = 'block';
     }
+
+    async function promoKullan() {
       const kod = document.getElementById('promo-input').value.trim();
       if (!kod) return;
       const r = await fetch('/api/promosyon/kullan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({kod}) });

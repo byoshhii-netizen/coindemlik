@@ -106,7 +106,7 @@ app.post('/api/cikis', (req, res) => { req.session.destroy(); res.json({ basari:
 // ─── OYUN API ───
 app.get('/api/benim-bilgilerim', (req, res) => {
   if (!req.session.kullanici) return res.status(401).json({ basari: false });
-  const k = db.prepare('SELECT id, nick, jeton, toplam_yatirilan, renk FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id);
+  const k = db.prepare('SELECT id, nick, jeton, toplam_yatirilan, renk, celik_kart FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id);
   if (!k) return res.status(401).json({ basari: false });
   if (!k.renk) { const renk = nickRenkAl(k.nick); db.prepare('UPDATE kullanicilar SET renk = ? WHERE id = ?').run(renk, k.id); k.renk = renk; }
   const itemler = db.prepare('SELECT * FROM kullanici_itemlari WHERE kullanici_id = ?').all(k.id);
@@ -152,20 +152,23 @@ app.post('/api/sat', (req, res) => {
   const mevcutDeger = grafik.mevcutDegerAl();
   const girisDegeri = bahis.grafik_degeri;
 
-  // Kâr/zarar hesabı — tam oran bazlı
-  // Yükselişte: ne kadar yükseldiyse o oranda kazanır
-  // Düşüşte: ne kadar düştüyse o oranda kaybeder
+  // Kâr/zarar hesabı — güçlendirilmiş oran (5x çarpan)
   const oran = (mevcutDeger - girisDegeri) / girisDegeri;
-  let kazan = Math.round(bahis.miktar * oran);
+  const CARPAN = 5; // kar ve zararı belirgin hale getirir
+  let kazan = Math.round(bahis.miktar * oran * CARPAN);
 
-  // Tur bitti zorla sat — kazanç kesilir, koyduğun gider
+  // Tur bitti zorla sat — koyduğun gider
   if (zorunlu) {
-    // Tur sona erdiğinde kaybedilir
     kazan = -bahis.miktar;
     db.prepare('UPDATE kullanicilar SET jeton = jeton + ? WHERE id = ?').run(0, req.session.kullanici.id);
   } else {
-    // 2X Kar
-    if (kazan > 0) {
+    // Celik Kart — x4 kar (her zaman aktif, kullanim azalmaz)
+    const celikKart = db.prepare(`SELECT ki.* FROM kullanici_itemlari ki WHERE ki.kullanici_id = ? AND ki.item_kod = 'celik_kart' AND ki.kalan_kullanim > 0`).get(req.session.kullanici.id);
+    if (celikKart && kazan > 0) {
+      kazan = kazan * 4;
+    }
+    // 2X Kar (celik kart yoksa veya her zaman)
+    if (kazan > 0 && !celikKart) {
       const ikiKat = db.prepare(`SELECT * FROM kullanici_itemlari WHERE kullanici_id = ? AND item_kod = 'iki_kat_kar' AND kalan_kullanim > 0`).get(req.session.kullanici.id);
       if (ikiKat) {
         kazan = kazan * 2;
@@ -191,6 +194,14 @@ app.post('/api/sat', (req, res) => {
   db.prepare('UPDATE islemler SET sonuc = ?, grafik_degeri = ? WHERE id = ?').run(kazan, mevcutDeger, bahis.id);
   const yeniJeton = db.prepare('SELECT jeton FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id).jeton;
   io.emit('jeton_guncelle', { kullanici_id: req.session.kullanici.id, jeton: yeniJeton });
+
+  // Celik kart broadcast
+  if (!zorunlu && kazan > 0) {
+    const celikKontrol = db.prepare(`SELECT ki.* FROM kullanici_itemlari ki WHERE ki.kullanici_id = ? AND ki.item_kod = 'celik_kart' AND ki.kalan_kullanim > 0`).get(req.session.kullanici.id);
+    if (celikKontrol) {
+      io.emit('celik_kart_kazandi', { nick: req.session.kullanici.nick, miktar: kazan });
+    }
+  }
 
   try {
     db.prepare('INSERT INTO bahis_loglari (kullanici_id, nick, miktar, giris_degeri, cikis_degeri, sonuc, ip) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -268,6 +279,13 @@ app.post('/api/market/satin-al', (req, res) => {
   const mevcut = db.prepare('SELECT * FROM kullanici_itemlari WHERE kullanici_id = ? AND item_kod = ?').get(k.id, item.kod);
   if (mevcut) db.prepare('UPDATE kullanici_itemlari SET kalan_kullanim = kalan_kullanim + ? WHERE id = ?').run(item.kullanim_hakki, mevcut.id);
   else db.prepare('INSERT INTO kullanici_itemlari (kullanici_id, item_kod, kalan_kullanim) VALUES (?, ?, ?)').run(k.id, item.kod, item.kullanim_hakki);
+
+  // Celik Kart — herkese duyur
+  if (item.kod === 'celik_kart') {
+    db.prepare('UPDATE kullanicilar SET celik_kart = 1 WHERE id = ?').run(k.id);
+    io.emit('celik_kart_alindi', { nick: k.nick, miktar: null });
+  }
+
   const yeniJeton = db.prepare('SELECT jeton FROM kullanicilar WHERE id = ?').get(k.id).jeton;
   res.json({ basari: true, mesaj: `${item.isim} satin alindi!`, yeniJeton });
 });
@@ -283,9 +301,9 @@ app.post('/api/market/jeton-satin-al', (req, res) => {
 
 // ─── LİDERLİK ───
 app.get('/api/liderlik', (req, res) => {
-  const gercekler = db.prepare('SELECT nick, jeton, toplam_yatirilan, renk FROM kullanicilar WHERE yasak = 0 ORDER BY jeton DESC LIMIT 50').all();
+  const gercekler = db.prepare('SELECT nick, jeton, toplam_yatirilan, renk, celik_kart FROM kullanicilar WHERE yasak = 0 ORDER BY jeton DESC LIMIT 50').all();
   const botlar = db.prepare('SELECT nick, jeton, 0 as toplam_yatirilan, NULL as renk FROM botlar WHERE aktif = 1').all();
-  const hepsi = [...gercekler.map(k => ({ ...k, bot: false })), ...botlar.map(b => ({ ...b, bot: true }))]
+  const hepsi = [...gercekler.map(k => ({ ...k, bot: false })), ...botlar.map(b => ({ ...b, bot: true, celik_kart: 0 }))]
     .sort((a, b) => b.jeton - a.jeton).slice(0, 50);
   res.json({ basari: true, liste: hepsi });
 });
@@ -294,7 +312,7 @@ app.get('/api/liderlik', (req, res) => {
 app.get('/api/chat/gecmis', (req, res) => {
   if (!req.session.kullanici) return res.status(401).json({ basari: false });
   const mesajlar = db.prepare(`
-    SELECT cm.id, cm.nick, cm.mesaj, cm.tarih, k.jeton, k.renk,
+    SELECT cm.id, cm.nick, cm.mesaj, cm.tarih, k.jeton, k.renk, k.celik_kart,
       (SELECT COUNT(*)+1 FROM kullanicilar k2 WHERE k2.jeton > k.jeton AND k2.yasak = 0) as sira
     FROM chat_mesajlari cm
     LEFT JOIN kullanicilar k ON cm.kullanici_id = k.id
@@ -540,12 +558,12 @@ function yayinlaOyuncular() {
   io.sockets.sockets.forEach(socket => {
     if (socket.kullanici && !goruldu.has(socket.kullanici.id)) {
       goruldu.add(socket.kullanici.id);
-      const k = db.prepare('SELECT id, nick, jeton, renk FROM kullanicilar WHERE id = ?').get(socket.kullanici.id);
+      const k = db.prepare('SELECT id, nick, jeton, renk, celik_kart FROM kullanicilar WHERE id = ?').get(socket.kullanici.id);
       if (k) oyuncular.push({ ...k, bot: false });
     }
   });
   const botlar = db.prepare('SELECT id, nick, jeton FROM botlar WHERE aktif = 1 ORDER BY RANDOM() LIMIT 12').all();
-  botlar.forEach(b => oyuncular.push({ id: `bot_${b.id}`, nick: b.nick, jeton: b.jeton, renk: nickRenkAl(b.nick), bot: true }));
+  botlar.forEach(b => oyuncular.push({ id: `bot_${b.id}`, nick: b.nick, jeton: b.jeton, renk: nickRenkAl(b.nick), bot: true, celik_kart: 0 }));
   io.emit('oyuncu_listesi', oyuncular);
 }
 

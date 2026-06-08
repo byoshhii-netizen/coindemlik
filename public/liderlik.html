@@ -86,8 +86,9 @@
           <tr class="${benim ? 'benim-satir' : ''} ${k.bot ? 'bot-satir' : ''}">
             <td class="td-sira">${siraEl}</td>
             <td>
-              <span class="lider-nick" style="color:${renk}">${escapeHtml(k.nick)}</span>
+              <span class="lider-nick" style="color:${k.celik_kart ? '#b8e0ff' : renk}">${k.celik_kart ? '💎 ' : ''}${escapeHtml(k.nick)}</span>
               ${k.bot ? '<span class="bot-rozet">BOT</span>' : ''}
+              ${k.celik_kart ? '<span class="celik-l-rozet">ÇELİK KART</span>' : ''}
               ${benim ? '<span class="sen-rozet">SEN</span>' : ''}
             </td>
             <td class="td-sayi mono">${k.jeton.toLocaleString('tr-TR')}</td>

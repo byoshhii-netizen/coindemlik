@@ -142,6 +142,7 @@ db.exec(`
 try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN renk TEXT DEFAULT NULL`); } catch(e) {}
 try { db.exec(`ALTER TABLE site_ayarlari ADD COLUMN min_bahis INTEGER DEFAULT 150`); } catch(e) {}
 try { db.exec(`ALTER TABLE grafik_ayarlari ADD COLUMN tur_suresi INTEGER DEFAULT 60`); } catch(e) {}
+try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN celik_kart INTEGER DEFAULT 0`); } catch(e) {}
 
 // Site ayarları
 const siteAyarSayisi = db.prepare('SELECT COUNT(*) as c FROM site_ayarlari').get();
@@ -166,10 +167,19 @@ if (koparAyar.c === 0) db.prepare('INSERT INTO para_kopar_ayar (id) VALUES (1)')
 const itemSayisi = db.prepare('SELECT COUNT(*) as c FROM market_itemlari').get();
 if (itemSayisi.c === 0) {
   db.prepare(`INSERT INTO market_itemlari (kod, isim, aciklama, fiyat, para_birimi, kullanim_hakki) VALUES
-    ('iki_kat_kar', '2X Kar', 'Kazandigin turlardan 2 kat para alirsin. 3 kullanim hakki.', 200, 'jeton', 3),
+    ('iki_kat_kar', '2X Kar', 'Kazandigin turlarda 2 kat kazanirsin. 3 kullanim hakki.', 200, 'jeton', 3),
     ('zarar_kalkan', 'Zarar Kalkani', 'Zarar ettiginde zararinin yarisi geri gelir. 3 kullanim hakki.', 150, 'jeton', 3),
-    ('para_kopar', 'Para Kopar', 'Rastgele bir oyuncudan jeton cal! 1 kullanim hakki.', 300, 'jeton', 1)
+    ('para_kopar', 'Para Kopar', 'Rastgele bir oyuncudan jeton al! 1 kullanim hakki.', 300, 'jeton', 1),
+    ('celik_kart', 'Celik Kart', 'Kalici efekt! Her turda x4 kazanc, ozel renk ve rozet. Herkese duyurulur.', 5000, 'jeton', 9999)
   `).run();
+} else {
+  // Celik kart yoksa ekle
+  const celik = db.prepare("SELECT id FROM market_itemlari WHERE kod = 'celik_kart'").get();
+  if (!celik) {
+    db.prepare(`INSERT INTO market_itemlari (kod, isim, aciklama, fiyat, para_birimi, kullanim_hakki) VALUES
+      ('celik_kart', 'Celik Kart', 'Kalici efekt! Her turda x4 kazanc, ozel renk ve rozet. Herkese duyurulur.', 5000, 'jeton', 9999)
+    `).run();
+  }
 }
 
 // Jeton paketleri
