@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin - Giriş</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="auth-sayfa">
+  <div class="auth-kart">
+    <div class="auth-logo">
+      <span class="logo-icon-buyuk">🍵</span>
+      <h1>DemliCoin</h1>
+      <p>Canlı kripto oyunu</p>
+    </div>
+    <form id="giris-form">
+      <div class="form-grup">
+        <label>Nick</label>
+        <input type="text" id="giris-nick" placeholder="Nickinizi girin" required />
+      </div>
+      <div class="form-grup">
+        <label>Şifre</label>
+        <input type="password" id="giris-sifre" placeholder="Şifrenizi girin" required />
+      </div>
+      <div id="giris-hata" class="hata-mesaj" style="display:none;"></div>
+      <button type="submit" class="btn btn-tam btn-ana">Giriş Yap</button>
+    </form>
+    <div class="auth-alt">
+      Hesabın yok mu? <a href="/kayit">Kayıt Ol</a>
+    </div>
+  </div>
+
+  <script>
+    // URL'de hata varsa göster
+    const url = new URLSearchParams(window.location.search);
+    if (url.get('hata') === 'yasakli') {
+      const h = document.getElementById('giris-hata');
+      h.textContent = 'Hesabınız yasaklanmıştır.';
+      h.style.display = 'block';
+    }
+
+    document.getElementById('giris-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nick = document.getElementById('giris-nick').value.trim();
+      const sifre = document.getElementById('giris-sifre').value;
+      const hata = document.getElementById('giris-hata');
+      hata.style.display = 'none';
+
+      const r = await fetch('/api/giris', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nick, sifre })
+      });
+      const d = await r.json();
+      if (d.basari) {
+        window.location.href = '/';
+      } else {
+        hata.textContent = d.mesaj;
+        hata.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

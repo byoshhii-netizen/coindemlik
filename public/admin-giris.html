@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin - Admin Girişi</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="auth-sayfa">
+  <div class="auth-kart">
+    <div class="auth-logo">
+      <span class="logo-icon-buyuk">🔧</span>
+      <h1>Admin Paneli</h1>
+      <p>DemliCoin Yönetim</p>
+    </div>
+    <form id="admin-form">
+      <div class="form-grup">
+        <label>Admin Şifresi</label>
+        <input type="password" id="admin-sifre" placeholder="••••••••" required />
+      </div>
+      <div id="admin-hata" class="hata-mesaj" style="display:none;"></div>
+      <button type="submit" class="btn btn-tam btn-ana">Giriş Yap</button>
+    </form>
+    <div class="auth-alt">
+      <a href="/">← Oyuna Dön</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('admin-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const sifre = document.getElementById('admin-sifre').value;
+      const hata = document.getElementById('admin-hata');
+      hata.style.display = 'none';
+
+      const r = await fetch('/api/admin/giris', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sifre })
+      });
+      const d = await r.json();
+      if (d.basari) {
+        window.location.href = '/yonetbunlari';
+      } else {
+        hata.textContent = d.mesaj;
+        hata.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin - Market</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="uygulama">
+    <header class="ust-bar">
+      <div class="logo-alan">
+        <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">
+          <span class="logo-icon">🍵</span>
+          <span class="logo-yazi">DemliCoin</span>
+        </a>
+      </div>
+      <div class="kullanici-bilgi">
+        <span id="hosgeldin-nick" class="nick-goster"></span>
+        <span class="jeton-goster">
+          <span class="jeton-ikon">🪙</span>
+          <span id="jeton-miktar">0</span>
+        </span>
+        <a href="/" class="btn btn-kucuk">🎮 Oyun</a>
+        <a href="/liderlik" class="btn btn-kucuk">🏆 Liderlik</a>
+        <button onclick="cikisYap()" class="btn btn-kucuk btn-tehlike">Çıkış</button>
+      </div>
+    </header>
+
+    <div class="sayfa-icerik">
+      <div class="market-baslik-alan">
+        <h1 class="sayfa-h1">🛒 Market</h1>
+        <div class="market-sekmeler">
+          <button class="sekme-btn aktif-sekme" onclick="sekmeAc('itemler', this)">🎁 Özel Güçler</button>
+          <button class="sekme-btn" onclick="sekmeAc('jetonlar', this)">🪙 Jeton Paketleri</button>
+        </div>
+      </div>
+
+      <!-- İtemler Sekmesi -->
+      <div id="sekme-itemler" class="market-icerik">
+        <div id="item-listesi" class="item-grid"></div>
+      </div>
+
+      <!-- Jeton Paketleri Sekmesi -->
+      <div id="sekme-jetonlar" class="market-icerik" style="display:none;">
+        <div id="paket-listesi" class="paket-grid"></div>
+      </div>
+
+      <div id="market-bildirim" class="market-bildirim" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    let kullanici = null;
+
+    async function init() {
+      const r = await fetch('/api/benim-bilgilerim');
+      if (!r.ok) { window.location.href = '/giris'; return; }
+      const d = await r.json();
+      kullanici = d.kullanici;
+      document.getElementById('hosgeldin-nick').textContent = kullanici.nick;
+      document.getElementById('jeton-miktar').textContent = kullanici.jeton.toLocaleString('tr-TR');
+      yukleItemler();
+      yuklePaketler();
+    }
+
+    async function yukleItemler() {
+      const r = await fetch('/api/market/itemlar');
+      const d = await r.json();
+      const grid = document.getElementById('item-listesi');
+      grid.innerHTML = '';
+      d.itemlar.forEach(item => {
+        const ikon = item.kod === 'iki_kat_kar' ? '💰' : item.kod === 'zarar_kalkan' ? '🛡️' : '🔫';
+        const renk = item.kod === 'iki_kat_kar' ? 'altin' : item.kod === 'zarar_kalkan' ? 'mavi' : 'kirmizi';
+        grid.innerHTML += `
+          <div class="item-kart item-${renk}">
+            <div class="item-ikon">${ikon}</div>
+            <div class="item-isim">${item.isim}</div>
+            <div class="item-aciklama">${item.aciklama}</div>
+            <div class="item-detay">
+              <span class="item-kullanim">🔄 ${item.kullanim_hakki}x kullanım</span>
+            </div>
+            <div class="item-fiyat">
+              ${item.para_birimi === 'jeton' ? `🪙 ${item.fiyat.toLocaleString('tr-TR')} Jeton` :
+                item.para_birimi === 'tl' ? `₺${item.fiyat.toFixed(2)}` : `$${item.fiyat.toFixed(2)}`}
+            </div>
+            <button class="btn btn-satin-al" onclick="itemSatinAl(${item.id}, '${item.isim}')">Satın Al</button>
+          </div>
+        `;
+      });
+    }
+
+    async function yuklePaketler() {
+      const r = await fetch('/api/market/jeton-paketleri');
+      const d = await r.json();
+      const grid = document.getElementById('paket-listesi');
+      grid.innerHTML = '';
+      const ikonlar = ['⭐', '🥉', '🥈', '🥇', '💎', '👑'];
+      d.paketler.forEach((paket, i) => {
+        grid.innerHTML += `
+          <div class="paket-kart">
+            <div class="paket-ikon">${ikonlar[i] || '🪙'}</div>
+            <div class="paket-isim">${paket.isim}</div>
+            <div class="paket-jeton">🪙 ${paket.jeton_miktari.toLocaleString('tr-TR')} Jeton</div>
+            <div class="paket-fiyat">
+              ${paket.para_birimi === 'tl' ? `₺${paket.fiyat.toFixed(2)}` : `$${paket.fiyat.toFixed(2)}`}
+            </div>
+            <button class="btn btn-satin-al-paket" onclick="paketSatinAl(${paket.id}, '${paket.isim}')">Satın Al</button>
+          </div>
+        `;
+      });
+    }
+
+    async function itemSatinAl(id, isim) {
+      const r = await fetch('/api/market/satin-al', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: id })
+      });
+      const d = await r.json();
+      bildirimGoster(d.mesaj, d.basari);
+      if (d.basari) {
+        kullanici.jeton = d.yeniJeton;
+        document.getElementById('jeton-miktar').textContent = d.yeniJeton.toLocaleString('tr-TR');
+      }
+    }
+
+    async function paketSatinAl(id, isim) {
+      const r = await fetch('/api/market/jeton-satin-al', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paket_id: id })
+      });
+      const d = await r.json();
+      bildirimGoster(d.mesaj, d.basari);
+      if (d.basari) {
+        kullanici.jeton = d.yeniJeton;
+        document.getElementById('jeton-miktar').textContent = d.yeniJeton.toLocaleString('tr-TR');
+      }
+    }
+
+    function bildirimGoster(mesaj, basari) {
+      const el = document.getElementById('market-bildirim');
+      el.textContent = mesaj;
+      el.className = `market-bildirim ${basari ? 'bildirim-basari' : 'bildirim-hata'}`;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    function sekmeAc(sekme, btn) {
+      document.getElementById('sekme-itemler').style.display = sekme === 'itemler' ? 'block' : 'none';
+      document.getElementById('sekme-jetonlar').style.display = sekme === 'jetonlar' ? 'block' : 'none';
+      document.querySelectorAll('.sekme-btn').forEach(b => b.classList.remove('aktif-sekme'));
+      btn.classList.add('aktif-sekme');
+    }
+
+    async function cikisYap() {
+      await fetch('/api/cikis', { method: 'POST' });
+      window.location.href = '/giris';
+    }
+
+    init();
+  </script>
+</body>
+</html>

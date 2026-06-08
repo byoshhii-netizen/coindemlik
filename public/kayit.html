@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin - Kayıt Ol</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="auth-sayfa">
+  <div class="auth-kart">
+    <div class="auth-logo">
+      <span class="logo-icon-buyuk">🍵</span>
+      <h1>DemliCoin</h1>
+      <p>Hesap oluştur, 500 jeton kazan!</p>
+    </div>
+    <form id="kayit-form">
+      <div class="form-grup">
+        <label>Nick</label>
+        <input type="text" id="kayit-nick" placeholder="Benzersiz nickiniz (3-20 karakter)" required minlength="3" maxlength="20" />
+      </div>
+      <div class="form-grup">
+        <label>Şifre</label>
+        <input type="password" id="kayit-sifre" placeholder="Şifreniz (en az 4 karakter)" required minlength="4" />
+      </div>
+      <div id="kayit-hata" class="hata-mesaj" style="display:none;"></div>
+      <button type="submit" class="btn btn-tam btn-ana">Kayıt Ol</button>
+    </form>
+    <div class="auth-alt">
+      Zaten hesabın var mı? <a href="/giris">Giriş Yap</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('kayit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nick = document.getElementById('kayit-nick').value.trim();
+      const sifre = document.getElementById('kayit-sifre').value;
+      const hata = document.getElementById('kayit-hata');
+      hata.style.display = 'none';
+
+      const r = await fetch('/api/kayit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nick, sifre })
+      });
+      const d = await r.json();
+      if (d.basari) {
+        window.location.href = '/';
+      } else {
+        hata.textContent = d.mesaj;
+        hata.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

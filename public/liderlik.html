@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin - Liderlik Tablosu</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="uygulama">
+    <header class="ust-bar">
+      <div class="logo-alan">
+        <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">
+          <span class="logo-icon">🍵</span>
+          <span class="logo-yazi">DemliCoin</span>
+        </a>
+      </div>
+      <div class="kullanici-bilgi">
+        <span id="hosgeldin-nick" class="nick-goster"></span>
+        <span class="jeton-goster">
+          <span class="jeton-ikon">🪙</span>
+          <span id="jeton-miktar">0</span>
+        </span>
+        <a href="/" class="btn btn-kucuk">🎮 Oyun</a>
+        <a href="/market" class="btn btn-kucuk">🛒 Market</a>
+        <button onclick="cikisYap()" class="btn btn-kucuk btn-tehlike">Çıkış</button>
+      </div>
+    </header>
+
+    <div class="sayfa-icerik">
+      <h1 class="sayfa-h1">🏆 Liderlik Tablosu</h1>
+      <div class="liderlik-kart">
+        <table class="liderlik-tablo">
+          <thead>
+            <tr>
+              <th>Sıra</th>
+              <th>Nick</th>
+              <th>Jeton</th>
+              <th>Toplam Yatırım</th>
+            </tr>
+          </thead>
+          <tbody id="liderlik-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function init() {
+      const r = await fetch('/api/benim-bilgilerim');
+      if (!r.ok) { window.location.href = '/giris'; return; }
+      const d = await r.json();
+      document.getElementById('hosgeldin-nick').textContent = d.kullanici.nick;
+      document.getElementById('jeton-miktar').textContent = d.kullanici.jeton.toLocaleString('tr-TR');
+      yukleLiderlik(d.kullanici.nick);
+    }
+
+    async function yukleLiderlik(benimNick) {
+      const r = await fetch('/api/liderlik');
+      const d = await r.json();
+      const tbody = document.getElementById('liderlik-body');
+      tbody.innerHTML = '';
+      const rozetler = ['🥇', '🥈', '🥉'];
+      d.liste.forEach((k, i) => {
+        const benim = k.nick === benimNick;
+        tbody.innerHTML += `
+          <tr class="${benim ? 'benim-satir' : ''}">
+            <td class="sira-td">
+              ${rozetler[i] || `<span class="sira-numara">${i + 1}</span>`}
+            </td>
+            <td class="nick-td">
+              ${benim ? '⭐ ' : ''}${k.nick}
+              ${benim ? ' <span class="sen-etiketi">(Sen)</span>' : ''}
+            </td>
+            <td class="jeton-td">🪙 ${k.jeton.toLocaleString('tr-TR')}</td>
+            <td class="yatirim-td">₺${(k.toplam_yatirilan || 0).toFixed(2)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    async function cikisYap() {
+      await fetch('/api/cikis', { method: 'POST' });
+      window.location.href = '/giris';
+    }
+
+    init();
+  </script>
+</body>
+</html>

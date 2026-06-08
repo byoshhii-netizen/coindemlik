@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin - Admin Panel</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="admin-sayfa">
+  <div class="admin-kapsayici">
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar">
+      <div class="admin-logo">
+        <span>🍵</span>
+        <span>DemliCoin</span>
+        <span class="admin-rozet">ADMİN</span>
+      </div>
+      <nav class="admin-nav">
+        <button class="admin-nav-btn aktif" onclick="adminSekme('grafik', this)">📈 Grafik Kontrol</button>
+        <button class="admin-nav-btn" onclick="adminSekme('oyuncular', this)">👥 Oyuncular</button>
+        <button class="admin-nav-btn" onclick="adminSekme('chat', this)">💬 Chat Geçmişi</button>
+        <button class="admin-nav-btn" onclick="adminSekme('itemlar', this)">🎁 Market İtemler</button>
+        <button class="admin-nav-btn" onclick="adminSekme('paketler', this)">🪙 Jeton Paketleri</button>
+        <button class="admin-nav-btn" onclick="adminSekme('parakopar', this)">🔫 Para Kopar Ayarı</button>
+      </nav>
+      <button onclick="adminCikis()" class="btn btn-tehlike btn-tam" style="margin-top:auto;">Çıkış Yap</button>
+    </aside>
+
+    <!-- Admin İçerik -->
+    <main class="admin-main">
+
+      <!-- Grafik Kontrol -->
+      <div id="admin-grafik" class="admin-panel aktif-panel">
+        <h2 class="admin-h2">📈 Grafik Kontrol</h2>
+        <div class="admin-form-grid">
+          <div class="admin-kart">
+            <h3>⚙️ Otomatik Ayarlar</h3>
+            <div class="form-grup">
+              <label>Güncelleme Süresi (ms)</label>
+              <input type="number" id="g-sure" value="3000" min="500" step="100" />
+              <small>Grafik kaç ms'de bir güncellenir (3000 = 3 saniye)</small>
+            </div>
+            <div class="form-grup">
+              <label>Min Değer</label>
+              <input type="number" id="g-min" value="10" min="1" />
+            </div>
+            <div class="form-grup">
+              <label>Max Değer</label>
+              <input type="number" id="g-max" value="500" min="10" />
+            </div>
+            <div class="form-grup">
+              <label>Artma Oranı (0-1)</label>
+              <input type="number" id="g-artma" value="0.6" min="0" max="1" step="0.05" />
+              <small>0.6 = %60 ihtimalle yükselir</small>
+            </div>
+            <div class="form-grup">
+              <label>Max Değişim Miktarı</label>
+              <input type="number" id="g-degisim" value="30" min="1" />
+              <small>Her adımda en fazla ne kadar değişir</small>
+            </div>
+            <button class="btn btn-ana" onclick="grafigKaydet()">💾 Otomatik Ayarları Kaydet</button>
+          </div>
+
+          <div class="admin-kart">
+            <h3>🎯 Manuel Kontrol</h3>
+            <p style="color:#aaa;font-size:13px;">Bir sonraki grafik adımını manuel olarak belirle. Belirlediğin değer bir kez uygulandıktan sonra otomatik moda döner.</p>
+            <div class="form-grup">
+              <label>Sonraki Değer</label>
+              <input type="number" id="g-siradaki" placeholder="Örn: 250" min="1" />
+            </div>
+            <div class="form-grup">
+              <label>Bu Değerde Kalma Süresi (ms)</label>
+              <input type="number" id="g-siradaki-sure" placeholder="Örn: 5000" min="500" step="100" />
+            </div>
+            <button class="btn btn-uyari" onclick="manuelGrafik()">🎯 Manuel Değer Uygula</button>
+            <div id="grafik-sonuc" class="admin-mesaj" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Oyuncular -->
+      <div id="admin-oyuncular" class="admin-panel">
+        <div class="admin-panel-ust">
+          <h2 class="admin-h2">👥 Oyuncular</h2>
+          <button class="btn btn-kucuk" onclick="yukleOyuncular()">🔄 Yenile</button>
+        </div>
+        <div class="tablo-kapsayici">
+          <table class="admin-tablo">
+            <thead>
+              <tr>
+                <th>Nick</th>
+                <th>Jeton</th>
+                <th>Top. Yatırım</th>
+                <th>Kayıt Tarihi</th>
+                <th>Durum</th>
+                <th>İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="oyuncu-tablo-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Chat Geçmişi -->
+      <div id="admin-chat" class="admin-panel">
+        <h2 class="admin-h2">💬 Chat Geçmişi</h2>
+        <div class="chat-filtre">
+          <div class="form-grup">
+            <label>Gün (YYYY-MM-DD)</label>
+            <input type="date" id="chat-gun" />
+          </div>
+          <div class="form-grup">
+            <label>Saat (0-23)</label>
+            <input type="number" id="chat-saat" placeholder="Örn: 14" min="0" max="23" />
+          </div>
+          <button class="btn btn-ana" onclick="yukleChat()">🔍 Ara</button>
+        </div>
+        <div id="chat-gecmis-liste" class="chat-gecmis-liste"></div>
+      </div>
+
+      <!-- Market İtemler -->
+      <div id="admin-itemlar" class="admin-panel">
+        <h2 class="admin-h2">🎁 Market İtem Ayarları</h2>
+        <div id="item-ayar-listesi" class="admin-form-grid"></div>
+      </div>
+
+      <!-- Jeton Paketleri -->
+      <div id="admin-paketler" class="admin-panel">
+        <h2 class="admin-h2">🪙 Jeton Paketleri</h2>
+        <div id="paket-ayar-listesi" class="admin-form-grid"></div>
+      </div>
+
+      <!-- Para Kopar Ayarı -->
+      <div id="admin-parakopar" class="admin-panel">
+        <h2 class="admin-h2">🔫 Para Kopar Ayarı</h2>
+        <div class="admin-kart" style="max-width:400px;">
+          <div class="form-grup">
+            <label>Minimum Çalınan Miktar (Jeton)</label>
+            <input type="number" id="pk-min" value="10" min="1" />
+          </div>
+          <div class="form-grup">
+            <label>Maximum Çalınan Miktar (Jeton)</label>
+            <input type="number" id="pk-max" value="100" min="1" />
+          </div>
+          <button class="btn btn-ana" onclick="koparKaydet()">💾 Kaydet</button>
+          <div id="kopar-mesaj" class="admin-mesaj" style="display:none;"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
