@@ -3,45 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DemliCoin - Market</title>
+  <title>DemliCoin — Market</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div id="uygulama">
+  <div id="uygulama" style="min-height:100vh;">
     <header class="ust-bar">
       <div class="logo-alan">
-        <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">
-          <span class="logo-icon">🍵</span>
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <div class="logo-icon">DC</div>
           <span class="logo-yazi">DemliCoin</span>
         </a>
       </div>
       <div class="kullanici-bilgi">
-        <span id="hosgeldin-nick" class="nick-goster"></span>
-        <span class="jeton-goster">
-          <span class="jeton-ikon">🪙</span>
+        <span class="nick-goster" id="hosgeldin-nick"></span>
+        <div class="jeton-goster">
+          <span class="jeton-label">JETON</span>
           <span id="jeton-miktar">0</span>
-        </span>
-        <a href="/" class="btn btn-kucuk">🎮 Oyun</a>
-        <a href="/liderlik" class="btn btn-kucuk">🏆 Liderlik</a>
-        <button onclick="cikisYap()" class="btn btn-kucuk btn-tehlike">Çıkış</button>
+        </div>
+        <div class="nav-ayrac"></div>
+        <a href="/" class="btn btn-kucuk">Oyun</a>
+        <a href="/liderlik" class="btn btn-kucuk">Liderlik</a>
+        <button onclick="cikisYap()" class="btn btn-tehlike btn-kucuk">Cikis</button>
       </div>
     </header>
 
     <div class="sayfa-icerik">
       <div class="market-baslik-alan">
-        <h1 class="sayfa-h1">🛒 Market</h1>
+        <h1 class="sayfa-h1">Market</h1>
         <div class="market-sekmeler">
-          <button class="sekme-btn aktif-sekme" onclick="sekmeAc('itemler', this)">🎁 Özel Güçler</button>
-          <button class="sekme-btn" onclick="sekmeAc('jetonlar', this)">🪙 Jeton Paketleri</button>
+          <button class="sekme-btn aktif-sekme" onclick="sekmeAc('itemler', this)">Ozel Gucler</button>
+          <button class="sekme-btn" onclick="sekmeAc('jetonlar', this)">Jeton Paketleri</button>
         </div>
       </div>
 
-      <!-- İtemler Sekmesi -->
       <div id="sekme-itemler" class="market-icerik">
         <div id="item-listesi" class="item-grid"></div>
       </div>
 
-      <!-- Jeton Paketleri Sekmesi -->
       <div id="sekme-jetonlar" class="market-icerik" style="display:none;">
         <div id="paket-listesi" class="paket-grid"></div>
       </div>
@@ -69,22 +68,26 @@
       const d = await r.json();
       const grid = document.getElementById('item-listesi');
       grid.innerHTML = '';
+      const ikonMap = { 'iki_kat_kar': '2X', 'zarar_kalkan': 'KLK', 'para_kopar': 'ROB' };
+      const renkMap = { 'iki_kat_kar': 'altin', 'zarar_kalkan': 'mavi', 'para_kopar': 'kirmizi' };
       d.itemlar.forEach(item => {
-        const ikon = item.kod === 'iki_kat_kar' ? '💰' : item.kod === 'zarar_kalkan' ? '🛡️' : '🔫';
-        const renk = item.kod === 'iki_kat_kar' ? 'altin' : item.kod === 'zarar_kalkan' ? 'mavi' : 'kirmizi';
+        const ikon = ikonMap[item.kod] || 'ITM';
+        const renk = renkMap[item.kod] || 'altin';
+        const fiyatStr = item.para_birimi === 'jeton'
+          ? `${item.fiyat.toLocaleString('tr-TR')} Jeton`
+          : item.para_birimi === 'tl'
+          ? `${item.fiyat.toFixed(2)} TL`
+          : `${item.fiyat.toFixed(2)} USD`;
         grid.innerHTML += `
           <div class="item-kart item-${renk}">
             <div class="item-ikon">${ikon}</div>
             <div class="item-isim">${item.isim}</div>
             <div class="item-aciklama">${item.aciklama}</div>
             <div class="item-detay">
-              <span class="item-kullanim">🔄 ${item.kullanim_hakki}x kullanım</span>
+              <span class="item-kullanim">${item.kullanim_hakki}x kullanim</span>
             </div>
-            <div class="item-fiyat">
-              ${item.para_birimi === 'jeton' ? `🪙 ${item.fiyat.toLocaleString('tr-TR')} Jeton` :
-                item.para_birimi === 'tl' ? `₺${item.fiyat.toFixed(2)}` : `$${item.fiyat.toFixed(2)}`}
-            </div>
-            <button class="btn btn-satin-al" onclick="itemSatinAl(${item.id}, '${item.isim}')">Satın Al</button>
+            <div class="item-fiyat">${fiyatStr}</div>
+            <button class="btn-satin-al" onclick="itemSatinAl(${item.id})">Satin Al</button>
           </div>
         `;
       });
@@ -95,23 +98,25 @@
       const d = await r.json();
       const grid = document.getElementById('paket-listesi');
       grid.innerHTML = '';
-      const ikonlar = ['⭐', '🥉', '🥈', '🥇', '💎', '👑'];
+      const etiketler = ['STARTER', 'BRONZ', 'GUMUS', 'ALTIN', 'ELMAS', 'EFSANE'];
       d.paketler.forEach((paket, i) => {
+        const fiyatStr = paket.para_birimi === 'tl'
+          ? `${paket.fiyat.toFixed(2)} TL`
+          : `${paket.fiyat.toFixed(2)} USD`;
         grid.innerHTML += `
           <div class="paket-kart">
-            <div class="paket-ikon">${ikonlar[i] || '🪙'}</div>
+            <div class="paket-ikon">${etiketler[i] || 'PAKET'}</div>
             <div class="paket-isim">${paket.isim}</div>
-            <div class="paket-jeton">🪙 ${paket.jeton_miktari.toLocaleString('tr-TR')} Jeton</div>
-            <div class="paket-fiyat">
-              ${paket.para_birimi === 'tl' ? `₺${paket.fiyat.toFixed(2)}` : `$${paket.fiyat.toFixed(2)}`}
-            </div>
-            <button class="btn btn-satin-al-paket" onclick="paketSatinAl(${paket.id}, '${paket.isim}')">Satın Al</button>
+            <div class="paket-jeton">${paket.jeton_miktari.toLocaleString('tr-TR')}</div>
+            <div class="paket-jeton-label">JETON</div>
+            <div class="paket-fiyat">${fiyatStr}</div>
+            <button class="btn-satin-al-paket" onclick="paketSatinAl(${paket.id})">Satin Al</button>
           </div>
         `;
       });
     }
 
-    async function itemSatinAl(id, isim) {
+    async function itemSatinAl(id) {
       const r = await fetch('/api/market/satin-al', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,7 +130,7 @@
       }
     }
 
-    async function paketSatinAl(id, isim) {
+    async function paketSatinAl(id) {
       const r = await fetch('/api/market/jeton-satin-al', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -3,95 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DemliCoin - Oyun</title>
+  <title>DemliCoin</title>
   <link rel="stylesheet" href="/style.css" />
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
   <div id="uygulama">
-    <!-- ÜST BAR -->
     <header class="ust-bar">
       <div class="logo-alan">
-        <span class="logo-icon">🍵</span>
+        <div class="logo-icon">DC</div>
         <span class="logo-yazi">DemliCoin</span>
       </div>
       <div class="kullanici-bilgi">
-        <span id="hosgeldin-nick" class="nick-goster"></span>
-        <span class="jeton-goster">
-          <span class="jeton-ikon">🪙</span>
+        <span class="nick-goster" id="hosgeldin-nick"></span>
+        <div class="jeton-goster">
+          <span class="jeton-label">JETON</span>
           <span id="jeton-miktar">0</span>
-        </span>
-        <a href="/market" class="btn btn-kucuk">🛒 Market</a>
-        <a href="/liderlik" class="btn btn-kucuk">🏆 Liderlik</a>
-        <button onclick="cikisYap()" class="btn btn-kucuk btn-tehlike">Çıkış</button>
+        </div>
+        <div class="nav-ayrac"></div>
+        <a href="/market" class="btn btn-kucuk">Market</a>
+        <a href="/liderlik" class="btn btn-kucuk">Liderlik</a>
+        <button onclick="cikisYap()" class="btn btn-tehlike btn-kucuk">Cikis</button>
       </div>
     </header>
 
-    <!-- ANA İÇERİK -->
     <div class="ana-icerik">
-      <!-- SOL PANEL: Online Oyuncular -->
+      <!-- SOL PANEL -->
       <aside class="sol-panel">
         <div class="panel-baslik">
-          <span>👥 Çevrimiçi Oyuncular</span>
+          <span>Cevrimici</span>
           <span id="oyuncu-sayisi" class="badge">0</span>
         </div>
         <div id="oyuncu-listesi" class="oyuncu-listesi"></div>
       </aside>
 
-      <!-- ORTA: Grafik + Oyun -->
+      <!-- ORTA -->
       <main class="orta-alan">
+
         <!-- Grafik -->
         <div class="grafik-kart">
           <div class="grafik-ust">
-            <span class="grafik-baslik">📈 DemliCoin Grafiği</span>
-            <span id="grafik-deger" class="canli-deger">-</span>
+            <span class="grafik-baslik">DEMLICOIN / CANLI GRAFIK</span>
+            <span id="grafik-deger" class="canli-deger mono">—</span>
           </div>
           <canvas id="grafik-canvas"></canvas>
         </div>
 
-        <!-- Bahis Paneli -->
+        <!-- Bahis -->
         <div class="bahis-panel" id="bahis-panel">
-          <div class="bahis-baslik">⚡ Bahis Yap</div>
+          <div class="bahis-baslik">Pozisyon Ac</div>
           <div class="bahis-icerik">
             <div class="input-grup">
-              <label>Jeton Miktarı</label>
+              <label>Jeton Miktari</label>
               <input type="number" id="bahis-miktar" placeholder="100" min="1" value="100" />
             </div>
             <div class="bahis-butonlar">
-              <button class="btn btn-yukari" onclick="bahistePara('yukari')">
-                📈 Yükselir
-              </button>
-              <button class="btn btn-asagi" onclick="bahistePara('asagi')">
-                📉 Düşer
-              </button>
+              <button class="btn-yukari" onclick="bahistePara('yukari')">AL / YUKSELIS</button>
+              <button class="btn-asagi" onclick="bahistePara('asagi')">SAT / DUSUS</button>
             </div>
           </div>
-          <!-- Aktif Bahis Gösterimi -->
+
           <div id="aktif-bahis" class="aktif-bahis" style="display:none;">
             <div class="aktif-bilgi">
-              <span>🎯 Aktif Bahis: <strong id="aktif-miktar"></strong> jeton</span>
-              <span>Giriş: <strong id="aktif-giris-deger"></strong></span>
-              <span id="anlik-kazan-goster" class="anlik-kazanc">+0</span>
+              <div class="aktif-bilgi-satir">
+                <span>Pozisyon:</span>
+                <strong id="aktif-miktar"></strong>
+                <span>jeton</span>
+              </div>
+              <div class="aktif-bilgi-satir">
+                <span>Giris:</span>
+                <strong id="aktif-giris-deger"></strong>
+              </div>
+              <div id="anlik-kazan-goster" class="anlik-kazanc">+0</div>
             </div>
-            <button class="btn btn-sat" onclick="satisYap()">💰 SAT</button>
+            <button class="btn-sat" onclick="satisYap()">POZISYONU KAPAT</button>
           </div>
         </div>
 
         <!-- Item Bar -->
         <div id="item-bar" class="item-bar"></div>
 
-        <!-- Sonuç Bildirimi -->
+        <!-- Sonuc -->
         <div id="sonuc-bildirim" class="sonuc-bildirim" style="display:none;"></div>
 
         <!-- Chat -->
         <div class="chat-kart">
-          <div class="chat-baslik">💬 Canlı Chat</div>
+          <div class="chat-baslik">Canli Chat</div>
           <div id="chat-mesajlar" class="chat-mesajlar"></div>
           <div class="chat-gonder">
-            <input type="text" id="chat-input" placeholder="Mesajınızı yazın..." maxlength="200" />
-            <button onclick="mesajGonder()" class="btn btn-gonder">Gönder</button>
+            <input type="text" id="chat-input" placeholder="Mesaj yaz..." maxlength="200" />
+            <button onclick="mesajGonder()" class="btn-gonder">Gonder</button>
           </div>
         </div>
+
       </main>
     </div>
   </div>

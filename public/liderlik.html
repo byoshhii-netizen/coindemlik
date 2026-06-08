@@ -3,40 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DemliCoin - Liderlik Tablosu</title>
+  <title>DemliCoin — Liderlik Tablosu</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div id="uygulama">
+  <div id="uygulama" style="min-height:100vh;">
     <header class="ust-bar">
       <div class="logo-alan">
-        <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">
-          <span class="logo-icon">🍵</span>
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <div class="logo-icon">DC</div>
           <span class="logo-yazi">DemliCoin</span>
         </a>
       </div>
       <div class="kullanici-bilgi">
-        <span id="hosgeldin-nick" class="nick-goster"></span>
-        <span class="jeton-goster">
-          <span class="jeton-ikon">🪙</span>
+        <span class="nick-goster" id="hosgeldin-nick"></span>
+        <div class="jeton-goster">
+          <span class="jeton-label">JETON</span>
           <span id="jeton-miktar">0</span>
-        </span>
-        <a href="/" class="btn btn-kucuk">🎮 Oyun</a>
-        <a href="/market" class="btn btn-kucuk">🛒 Market</a>
-        <button onclick="cikisYap()" class="btn btn-kucuk btn-tehlike">Çıkış</button>
+        </div>
+        <div class="nav-ayrac"></div>
+        <a href="/" class="btn btn-kucuk">Oyun</a>
+        <a href="/market" class="btn btn-kucuk">Market</a>
+        <button onclick="cikisYap()" class="btn btn-tehlike btn-kucuk">Cikis</button>
       </div>
     </header>
 
     <div class="sayfa-icerik">
-      <h1 class="sayfa-h1">🏆 Liderlik Tablosu</h1>
+      <h1 class="sayfa-h1">Liderlik Tablosu</h1>
       <div class="liderlik-kart">
         <table class="liderlik-tablo">
           <thead>
             <tr>
-              <th>Sıra</th>
-              <th>Nick</th>
+              <th style="text-align:center;">Sira</th>
+              <th>Oyuncu</th>
               <th>Jeton</th>
-              <th>Toplam Yatırım</th>
+              <th>Toplam Yatirim</th>
             </tr>
           </thead>
           <tbody id="liderlik-body"></tbody>
@@ -60,20 +61,22 @@
       const d = await r.json();
       const tbody = document.getElementById('liderlik-body');
       tbody.innerHTML = '';
-      const rozetler = ['🥇', '🥈', '🥉'];
       d.liste.forEach((k, i) => {
         const benim = k.nick === benimNick;
+        let siraHtml;
+        if (i === 0) siraHtml = `<span class="sira-top-1">1</span>`;
+        else if (i === 1) siraHtml = `<span class="sira-top-2">2</span>`;
+        else if (i === 2) siraHtml = `<span class="sira-top-3">3</span>`;
+        else siraHtml = `<span class="sira-numara">${i + 1}</span>`;
+
         tbody.innerHTML += `
           <tr class="${benim ? 'benim-satir' : ''}">
-            <td class="sira-td">
-              ${rozetler[i] || `<span class="sira-numara">${i + 1}</span>`}
-            </td>
+            <td class="sira-td">${siraHtml}</td>
             <td class="nick-td">
-              ${benim ? '⭐ ' : ''}${k.nick}
-              ${benim ? ' <span class="sen-etiketi">(Sen)</span>' : ''}
+              ${k.nick}${benim ? '<span class="sen-etiketi">SEN</span>' : ''}
             </td>
-            <td class="jeton-td">🪙 ${k.jeton.toLocaleString('tr-TR')}</td>
-            <td class="yatirim-td">₺${(k.toplam_yatirilan || 0).toFixed(2)}</td>
+            <td class="jeton-td">${k.jeton.toLocaleString('tr-TR')}</td>
+            <td class="yatirim-td">${(k.toplam_yatirilan || 0).toFixed(2)} TL</td>
           </tr>
         `;
       });

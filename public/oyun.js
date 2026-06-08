@@ -198,7 +198,7 @@ async function bahistePara(yon) {
   document.getElementById('aktif-miktar').textContent = miktar.toLocaleString('tr-TR');
   document.getElementById('aktif-giris-deger').textContent = (d.girdigiDeger || d.girtigiDeger || '?');
 
-  bildirimGoster(`${miktar} jeton bahis girdiniz (${yon === 'yukari' ? '📈 Yükselir' : '📉 Düşer'})`, true);
+  bildirimGoster(`${miktar} jeton pozisyon girildi — ${yon === 'yukari' ? 'YUKSELIS' : 'DUSUS'}`, true);
 }
 
 async function satisYap() {
@@ -215,7 +215,7 @@ async function satisYap() {
   document.getElementById('jeton-miktar').textContent = d.yeniJeton.toLocaleString('tr-TR');
 
   const kazanc = d.kazanc;
-  const mesaj = kazanc > 0 ? `+${kazanc.toLocaleString('tr-TR')} 🎉 Kâr!` : kazanc < 0 ? `${kazanc.toLocaleString('tr-TR')} 😢 Zarar` : `±0 Başabaş`;
+  const mesaj = kazanc > 0 ? `+${kazanc.toLocaleString('tr-TR')}` : kazanc < 0 ? `${kazanc.toLocaleString('tr-TR')}` : `+0`;
   sonucGoster(kazanc, mesaj);
 
   aktifBahis = null;
@@ -260,8 +260,8 @@ function itemBarGuncelle(itemler) {
   if (!itemler || itemler.length === 0) return;
 
   itemler.forEach(item => {
-    const ikonlar = { 'iki_kat_kar': '💰', 'zarar_kalkan': '🛡️', 'para_kopar': '🔫' };
-    const isimler = { 'iki_kat_kar': '2X Kâr', 'zarar_kalkan': 'Zarar Kalkanı', 'para_kopar': 'Para Kopar' };
+    const ikonlar = { 'iki_kat_kar': '2X', 'zarar_kalkan': 'KLK', 'para_kopar': 'ROB' };
+    const isimler = { 'iki_kat_kar': '2X Kar', 'zarar_kalkan': 'Zarar Kalkani', 'para_kopar': 'Para Kopar' };
     const btn = document.createElement('button');
     btn.className = 'item-bar-btn';
     btn.innerHTML = `${ikonlar[item.item_kod] || '🎁'} ${isimler[item.item_kod] || item.item_kod} <span class="item-kullanim-badge">${item.kalan_kullanim}x</span>`;
@@ -276,7 +276,7 @@ async function paraKopar() {
   const r = await fetch('/api/para-kopar', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
   const d = await r.json();
   if (d.basari) {
-    bildirimGoster(`🔫 ${d.hedefNick} oyuncusundan ${d.calinanMiktar} jeton çaldın!`, true);
+    bildirimGoster(`${d.hedefNick} oyuncusundan ${d.calinanMiktar} jeton calindi.`, true);
     kullanici.jeton = d.yeniJeton;
     document.getElementById('jeton-miktar').textContent = d.yeniJeton.toLocaleString('tr-TR');
     const info = await fetch('/api/benim-bilgilerim');
