@@ -180,6 +180,7 @@ socket.on('tur_basladi', (data) => {
 });
 
 socket.on('tur_bitti', () => {
+  turBitis = null; // Yeni tur başlayana kadar engelleme yok
   turBildirim('TUR BİTTİ', false);
   sagAltBildirim('Tur sona erdi.', 'uyari', 4000);
   if (aktifPozisyon) zorunluSat();
@@ -382,7 +383,8 @@ function anlikPLGuncelle(mevcutDeger) {
 async function basBahistePara() {
   if (!kullanici) { window.location.href = '/kayit'; return; }
   if (aktifPozisyon) { bildirimGoster('Zaten aktif pozisyon var!', false); return; }
-  if (turBitis && Date.now() >= turBitis) { bildirimGoster('Tur bitti, yeni tur bekle!', false); return; }
+  // turBitis null ise yeni tur bekleniyor, giriş serbest
+  if (turBitis && Date.now() >= turBitis) { bildirimGoster('Yeni tur başlıyor, bekle!', false); return; }
 
   const miktar = parseInt(document.getElementById('bahis-miktar').value);
   if (!miktar || miktar < 1) { bildirimGoster('Gecerli miktar girin!', false); return; }

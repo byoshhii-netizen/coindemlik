@@ -44,6 +44,7 @@ class GrafikMotoru {
   turBitti() {
     // Aktif tüm bahisleri zorla kapat (sunucu taraflı)
     this.io.emit('tur_bitti');
+    this.turBitis = null; // Yeni tur başlayana kadar engelleme olmasın
 
     // 2 sn sonra yeni tur
     setTimeout(() => this.yeniTurBaslat(), 2000);
