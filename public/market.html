@@ -39,6 +39,7 @@
       <button class="sekme-btn aktif-sekme" onclick="sekmeAc('gucler',this)">Ozel Gucler</button>
       <button class="sekme-btn" onclick="sekmeAc('jetonlar',this)">Jeton Paketleri</button>
       <button class="sekme-btn" onclick="sekmeAc('promo',this)">Promosyon Kodu</button>
+      <button class="sekme-btn" onclick="sekmeAc('odeme',this)">Kart ile Odeme</button>
     </div>
 
     <div id="sekme-gucler">
@@ -59,6 +60,58 @@
             <button onclick="promoKullan()" class="promo-btn">KULLAN</button>
           </div>
           <div id="promo-msg" class="market-bildirim" style="display:none;margin-top:14px;position:static;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sekme-odeme" style="display:none;">
+      <div style="padding:20px 0;">
+        <div class="odeme-form">
+          <div class="odeme-baslik">Kart ile Odeme</div>
+          <div class="fg">
+            <label class="auth-label">Paket Secin</label>
+            <select class="auth-input" id="odeme-paket">
+              <option value="1500">Starter — 1.500 Jeton — 29.99 TL</option>
+              <option value="5000">Bronz — 5.000 Jeton — 79.99 TL</option>
+              <option value="7500">Gumus — 7.500 Jeton — 109.99 TL</option>
+              <option value="10000">Altin — 10.000 Jeton — 139.99 TL</option>
+              <option value="15000">Elmas — 15.000 Jeton — 199.99 TL</option>
+              <option value="20000">Efsane — 20.000 Jeton — 249.99 TL</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="auth-label">Kart Sahibinin Adi</label>
+            <input class="auth-input" type="text" placeholder="AD SOYAD" maxlength="40" autocomplete="cc-name" />
+          </div>
+          <div class="fg kart-input-wrap">
+            <label class="auth-label">Kart Numarasi</label>
+            <input class="auth-input" type="text" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number" id="kart-no" oninput="kartFormat(this)" />
+            <span class="kart-ikon">💳</span>
+          </div>
+          <div class="odeme-row">
+            <div class="fg">
+              <label class="auth-label">Son Kullanma</label>
+              <input class="auth-input" type="text" placeholder="AA/YY" maxlength="5" autocomplete="cc-exp" id="kart-exp" oninput="expFormat(this)" />
+            </div>
+            <div class="fg">
+              <label class="auth-label">CVV</label>
+              <input class="auth-input" type="password" placeholder="•••" maxlength="4" autocomplete="cc-csc" />
+            </div>
+          </div>
+          <button class="odeme-btn" onclick="odemeYap()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            ODEMEYI TAMAMLA
+          </button>
+          <div class="odeme-guvenli">
+            <svg width="12" height="14" viewBox="0 0 24 28" fill="none"><path d="M12 2L4 6v6c0 5.5 3.5 10.7 8 12 4.5-1.3 8-6.5 8-12V6L12 2z" fill="currentColor" opacity="0.6"/></svg>
+            256-bit SSL ile korunan guvenli odeme
+          </div>
+          <div class="odeme-kartlar">
+            <span class="kart-rozet visa">VISA</span>
+            <span class="kart-rozet mc">MC</span>
+            <span class="kart-rozet troy">TROY</span>
+          </div>
+          <div id="odeme-msg" style="display:none;margin-top:14px;"></div>
         </div>
       </div>
     </div>
@@ -148,11 +201,27 @@
       document.getElementById('sekme-gucler').style.display = s==='gucler'?'block':'none';
       document.getElementById('sekme-jetonlar').style.display = s==='jetonlar'?'block':'none';
       document.getElementById('sekme-promo').style.display = s==='promo'?'block':'none';
+      document.getElementById('sekme-odeme').style.display = s==='odeme'?'block':'none';
       document.querySelectorAll('.sekme-btn').forEach(b=>b.classList.remove('aktif-sekme'));
       btn.classList.add('aktif-sekme');
     }
 
-    async function promoKullan() {
+    function kartFormat(el) {
+      let v = el.value.replace(/\D/g,'').substring(0,16);
+      el.value = v.replace(/(.{4})/g,'$1 ').trim();
+    }
+
+    function expFormat(el) {
+      let v = el.value.replace(/\D/g,'');
+      if (v.length >= 2) v = v.substring(0,2) + '/' + v.substring(2,4);
+      el.value = v;
+    }
+
+    function odemeYap() {
+      const msg = document.getElementById('odeme-msg');
+      msg.innerHTML = '<div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:14px;font-size:13px;color:#8899bb;text-align:center;">Odeme altyapisi aktif degil. Lutfen yoneticiyle iletisime gecin.</div>';
+      msg.style.display = 'block';
+    }
       const kod = document.getElementById('promo-input').value.trim();
       if (!kod) return;
       const r = await fetch('/api/promosyon/kullan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({kod}) });

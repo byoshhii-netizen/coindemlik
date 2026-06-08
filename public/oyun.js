@@ -384,7 +384,7 @@ function sonucGoster(kazanc, zorunlu) {
   rakam.className = 'sonuc-rakam ' + (kazanc > 0 ? 'pozitif' : kazanc < 0 ? 'negatif' : 'sifir');
   if (alt) alt.textContent = zorunlu ? 'TUR BİTTİ — JETON' : 'JETON';
   overlay.style.display = 'flex';
-  setTimeout(() => { overlay.style.display = 'none'; }, 3000);
+  setTimeout(() => { overlay.style.display = 'none'; }, 1500);
 }
 
 function hizliMiktar(m) { const el = document.getElementById('bahis-miktar'); if (el) el.value = m; }
@@ -482,7 +482,7 @@ function oyuncuListesiGoster(oyuncular) {
     div.className = 'oyuncu-satir' + (benim ? ' benim-oyuncu' : '');
     div.innerHTML = `
       <span class="oyuncu-nick" style="color:${renk}">${benim ? '▶ ' : ''}${escapeHtml(o.nick)}</span>
-      <span class="oyuncu-jeton mono">${o.jeton.toLocaleString('tr-TR')}</span>
+      <span class="oyuncu-jeton mono"><img src="/coin.svg" class="coin-img" style="width:11px;height:11px;vertical-align:middle;margin-right:2px;" />${o.jeton.toLocaleString('tr-TR')}</span>
     `;
     liste.appendChild(div);
   });
