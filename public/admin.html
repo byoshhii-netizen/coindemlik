@@ -24,6 +24,8 @@
         <button class="anav-btn" onclick="goster('itemlar',this)">Market Itemler</button>
         <button class="anav-btn" onclick="goster('paketler',this)">Jeton Paketleri</button>
         <button class="anav-btn" onclick="goster('parakopar',this)">Para Kopar</button>
+        <button class="anav-btn" onclick="goster('promosyon',this)">Promosyon Kodlari</button>
+        <button class="anav-btn" onclick="goster('siteayar',this)">Site Ayarlari</button>
       </nav>
       <button onclick="cikis()" class="admin-cikis-btn">Cikis Yap</button>
     </aside>
@@ -114,6 +116,55 @@
           <div class="fg"><label>Maksimum Jeton</label><input id="pk-max" type="number" value="100" /></div>
           <button class="admin-btn-ana" onclick="koparKaydet()">Kaydet</button>
           <div id="kopar-msg" class="admin-msg" style="display:none;"></div>
+        </div>
+      </section>
+
+      <!-- PROMOSYON KODLARI -->
+      <section id="panel-promosyon" class="admin-panel">
+        <h2 class="admin-h2">Promosyon Kodlari</h2>
+        <div class="admin-kart" style="max-width:520px;margin-bottom:20px;">
+          <h3>Yeni Kod Olustur</h3>
+          <div class="fg"><label>Kod (otomatik buyuk harf)</label><input id="prom-kod" type="text" placeholder="ornek: HOSGELDIN2024" maxlength="30" /></div>
+          <div class="fg"><label>Verilecek Jeton</label><input id="prom-jeton" type="number" value="0" min="0" /></div>
+          <div class="fg">
+            <label>Verilecek Item</label>
+            <select id="prom-item">
+              <option value="">Yok</option>
+              <option value="iki_kat_kar">2X Kar</option>
+              <option value="zarar_kalkan">Zarar Kalkani</option>
+              <option value="para_kopar">Para Kopar</option>
+            </select>
+          </div>
+          <div class="fg"><label>Item Adeti</label><input id="prom-item-adet" type="number" value="0" min="0" /></div>
+          <div class="fg">
+            <label>Kullanim Tipi</label>
+            <select id="prom-sinirli">
+              <option value="1">Sinirli (birkac kisi kullanabilir)</option>
+              <option value="0">Sinirsiz (herkes kullanabilir)</option>
+            </select>
+          </div>
+          <div class="fg"><label>Kullanim Hakki (sinirli secildiyse)</label><input id="prom-hakki" type="number" value="1" min="1" /><small>Her kullanici 1 kez kullanabilir. Bu sayi kac farkli kisi kullanabilecegini belirler.</small></div>
+          <button class="admin-btn-ana" onclick="promosyonOlustur()">Kodu Olustur</button>
+          <div id="prom-msg" class="admin-msg" style="display:none;"></div>
+        </div>
+
+        <div class="tablo-wrap">
+          <table class="admin-tablo">
+            <thead><tr><th>Kod</th><th>Jeton</th><th>Item</th><th>Tip</th><th>Kullanim</th><th>Durum</th><th>Islem</th></tr></thead>
+            <tbody id="promo-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SITE AYARLARI -->
+      <section id="panel-siteayar" class="admin-panel">
+        <h2 class="admin-h2">Site Ayarlari</h2>
+        <div class="admin-kart" style="max-width:400px">
+          <h3>Coin Adi</h3>
+          <div class="fg"><label>Coin Ismi</label><input id="sa-isim" type="text" placeholder="DemliCoin" /></div>
+          <div class="fg"><label>Coin Kisaltmasi</label><input id="sa-kisaltma" type="text" placeholder="DC" maxlength="6" /><small>Grafik basliginda gozukur</small></div>
+          <button class="admin-btn-ana" onclick="siteAyarKaydet()">Kaydet</button>
+          <div id="sa-msg" class="admin-msg" style="display:none;"></div>
         </div>
       </section>
 

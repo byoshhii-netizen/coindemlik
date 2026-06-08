@@ -358,7 +358,98 @@ app.post('/api/admin/bot-guncelle', adminGerektir, (req, res) => {
   res.json({ basari: true });
 });
 
-// ─── SOCKET.IO ───
+// ─── SİTE AYARLARI API (public) ───
+app.get('/api/site-ayarlari', (req, res) => {
+  const ayar = db.prepare('SELECT * FROM site_ayarlari WHERE id = 1').get();
+  res.json({ basari: true, ayar: ayar || { coin_ismi: 'DemliCoin', coin_kisaltma: 'DC' } });
+});
+
+// ─── PROMOSYON API ───
+app.post('/api/promosyon/kullan', (req, res) => {
+  if (!req.session.kullanici) return res.status(401).json({ basari: false, mesaj: 'Giris gerekli.' });
+  const { kod } = req.body;
+  if (!kod) return res.json({ basari: false, mesaj: 'Kod gerekli.' });
+
+  const promo = db.prepare('SELECT * FROM promosyon_kodlari WHERE kod = ? AND aktif = 1').get(kod.trim().toUpperCase());
+  if (!promo) return res.json({ basari: false, mesaj: 'Gecersiz veya suresi dolmus promosyon kodu.' });
+
+  // Sinirli kullanim kontrolu
+  if (promo.sinirli && promo.kullanim_sayisi >= promo.kullanim_hakki) {
+    return res.json({ basari: false, mesaj: 'Bu promosyon kodu kullanim limitine ulasti.' });
+  }
+
+  // Kullanicinin daha once kullanip kullanmadigini kontrol et
+  const onceki = db.prepare('SELECT id FROM promosyon_kullanimlari WHERE kod_id = ? AND kullanici_id = ?').get(promo.id, req.session.kullanici.id);
+  if (onceki) return res.json({ basari: false, mesaj: 'Bu kodu daha once kullandiniz.' });
+
+  // Jetonu ver
+  if (promo.jeton > 0) {
+    db.prepare('UPDATE kullanicilar SET jeton = jeton + ? WHERE id = ?').run(promo.jeton, req.session.kullanici.id);
+  }
+
+  // Item ver
+  if (promo.item_kod && promo.item_adet > 0) {
+    const mevcut = db.prepare('SELECT * FROM kullanici_itemlari WHERE kullanici_id = ? AND item_kod = ?').get(req.session.kullanici.id, promo.item_kod);
+    if (mevcut) db.prepare('UPDATE kullanici_itemlari SET kalan_kullanim = kalan_kullanim + ? WHERE id = ?').run(promo.item_adet, mevcut.id);
+    else db.prepare('INSERT INTO kullanici_itemlari (kullanici_id, item_kod, kalan_kullanim) VALUES (?, ?, ?)').run(req.session.kullanici.id, promo.item_kod, promo.item_adet);
+  }
+
+  // Kullanim kaydet
+  db.prepare('INSERT INTO promosyon_kullanimlari (kod_id, kullanici_id) VALUES (?, ?)').run(promo.id, req.session.kullanici.id);
+  db.prepare('UPDATE promosyon_kodlari SET kullanim_sayisi = kullanim_sayisi + 1 WHERE id = ?').run(promo.id);
+
+  const yeniJeton = db.prepare('SELECT jeton FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id).jeton;
+
+  let mesaj = 'Promosyon kodu kullanildi!';
+  if (promo.jeton > 0) mesaj += ` +${promo.jeton} jeton kazandiniz.`;
+  if (promo.item_kod && promo.item_adet > 0) mesaj += ` ${promo.item_adet}x item eklendi.`;
+
+  res.json({ basari: true, mesaj, yeniJeton });
+});
+
+// ─── ADMIN PROMOSYON API ───
+app.get('/api/admin/promosyonlar', adminGerektir, (req, res) => {
+  const promolar = db.prepare('SELECT * FROM promosyon_kodlari ORDER BY id DESC').all();
+  res.json({ basari: true, promolar });
+});
+
+app.post('/api/admin/promosyon-olustur', adminGerektir, (req, res) => {
+  const { kod, jeton, item_kod, item_adet, sinirli, kullanim_hakki } = req.body;
+  if (!kod) return res.json({ basari: false, mesaj: 'Kod gerekli.' });
+  const temizKod = kod.trim().toUpperCase();
+  try {
+    db.prepare('INSERT INTO promosyon_kodlari (kod, jeton, item_kod, item_adet, sinirli, kullanim_hakki) VALUES (?, ?, ?, ?, ?, ?)').run(
+      temizKod, jeton || 0, item_kod || null, item_adet || 0, sinirli ? 1 : 0, kullanim_hakki || 1
+    );
+    res.json({ basari: true, mesaj: `"${temizKod}" kodu olusturuldu.` });
+  } catch(e) {
+    res.json({ basari: false, mesaj: 'Bu kod zaten mevcut.' });
+  }
+});
+
+app.post('/api/admin/promosyon-sil', adminGerektir, (req, res) => {
+  db.prepare('DELETE FROM promosyon_kodlari WHERE id = ?').run(req.body.id);
+  res.json({ basari: true });
+});
+
+app.post('/api/admin/promosyon-toggle', adminGerektir, (req, res) => {
+  db.prepare('UPDATE promosyon_kodlari SET aktif = ? WHERE id = ?').run(req.body.aktif ? 1 : 0, req.body.id);
+  res.json({ basari: true });
+});
+
+// ─── ADMIN SİTE AYARLARI ───
+app.get('/api/admin/site-ayarlari', adminGerektir, (req, res) => {
+  const ayar = db.prepare('SELECT * FROM site_ayarlari WHERE id = 1').get();
+  res.json({ basari: true, ayar });
+});
+
+app.post('/api/admin/site-ayarlari', adminGerektir, (req, res) => {
+  const { coin_ismi, coin_kisaltma } = req.body;
+  db.prepare('UPDATE site_ayarlari SET coin_ismi = ?, coin_kisaltma = ? WHERE id = 1').run(
+    coin_ismi || 'DemliCoin', coin_kisaltma || 'DC'
+  );
+  res.json({ basari: true, mesaj: 'Site ayarlari guncellendi.' });
+});
 io.on('connection', (socket) => {
   socket.on('auth', (data) => {
     if (!data || !data.kullanici_id) return;

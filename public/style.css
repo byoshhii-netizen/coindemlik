@@ -967,9 +967,65 @@ body {
 .cg-nick  { font-weight: 700; color: var(--gold); white-space: nowrap; min-width: 90px; font-size: 12px; }
 .cg-metin { color: var(--t1); flex: 1; }
 
-/* ══════════════════════════════════════════════
-   RESPONSIVE
-   ══════════════════════════════════════════════ */
+/* Logo img */
+.logo-img {
+  height: 30px; width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* SAT butonu */
+.sat-btn {
+  height: 52px; padding: 0 30px;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  border: none; border-radius: var(--rad);
+  color: #fff; font-size: 16px; font-weight: 800;
+  letter-spacing: 0.06em; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 4px 20px rgba(239,68,68,0.35);
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0; white-space: nowrap;
+}
+.sat-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.sat-btn:active { transform: translateY(0); }
+
+/* Bahis buton grubu */
+.bahis-buton-grup { display: flex; gap: 10px; flex-shrink: 0; }
+
+/* Aktif bilgi */
+.aktif-bilgi-wrap {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 12px; padding: 10px 14px;
+  background: var(--gold-dim); border: 1px solid var(--gold-brd);
+  border-radius: var(--rad);
+}
+.aktif-bilgi-text { font-size: 12px; color: var(--t2); }
+.aktif-bilgi-text strong { color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+
+/* Promosyon kutusu */
+.promo-wrap {
+  display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+}
+.promo-input {
+  flex: 1; height: 38px;
+  background: var(--bg-1); border: 1px solid var(--brd2);
+  border-radius: var(--rad); padding: 0 14px;
+  color: var(--t1); font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.06em;
+  outline: none; text-transform: uppercase; transition: border-color 0.15s;
+}
+.promo-input:focus { border-color: var(--gold-brd); }
+.promo-input::placeholder { color: var(--t3); font-size: 11px; letter-spacing: 0.08em; font-family: 'Inter', sans-serif; font-weight: 400; }
+.promo-btn {
+  height: 38px; padding: 0 16px;
+  background: var(--bg-3); border: 1px solid var(--gold-brd);
+  border-radius: var(--rad); color: var(--gold);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  cursor: pointer; transition: background 0.15s; font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.promo-btn:hover { background: var(--gold-dim); }
+
 @media (max-width: 960px) { .sol-panel { display: none; } }
 @media (max-width: 640px) {
   .ust-bar { padding: 0 12px; }
@@ -980,4 +1036,57 @@ body {
   .admin-wrap { flex-direction: column; }
   .admin-sidebar { width: 100%; }
   .admin-nav { flex-direction: row; flex-wrap: wrap; }
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE / MOBİL
+   ══════════════════════════════════════════════ */
+@media (max-width: 960px) { .sol-panel { display: none; } }
+
+@media (max-width: 640px) {
+  .ust-bar { padding: 0 12px; height: 52px; }
+  .logo-img { height: 26px; }
+  .logo-text { font-size: 15px; }
+  .nav-link { display: none; }
+  .jeton-pill { padding: 0 10px; height: 28px; }
+  .jeton-sayi { font-size: 13px; }
+  .jeton-label { display: none; }
+  .nick-pill { display: none; }
+
+  .orta-alan { padding: 8px; gap: 8px; }
+
+  .grafik-kart { padding: 12px 10px 8px; }
+  .canli-deger { font-size: 22px; }
+
+  .bahis-kart { padding: 14px 12px; }
+  .bahis-ic { flex-direction: column; gap: 10px; }
+  .bahis-buton-grup { width: 100%; display: flex; gap: 8px; }
+  .bas-btn, .sat-btn { flex: 1; height: 48px; font-size: 15px; padding: 0; }
+  .miktar-input { height: 46px; font-size: 18px; }
+  .hizli-miktarlar button { height: 28px; font-size: 11px; padding: 0 8px; }
+
+  .chat-kart { height: 220px; }
+  .chat-meta { display: none; }
+
+  .giris-uyari-kart { padding: 18px 14px; }
+  .giris-uyari-butonlar { flex-direction: column; }
+
+  .promo-wrap { flex-direction: row; }
+  .promo-input { font-size: 12px; }
+
+  .sayfa-icerik { padding: 16px 12px 40px; }
+  .guc-grid { grid-template-columns: 1fr; }
+  .paket-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .admin-wrap { flex-direction: column; }
+  .admin-sidebar { width: 100%; }
+  .admin-nav { flex-direction: row; flex-wrap: wrap; gap: 2px; padding: 6px; }
+  .anav-btn { font-size: 12px; padding: 6px 10px; }
+  .admin-main { padding: 14px; }
+}
+
+@media (max-width: 400px) {
+  .logo-text { display: none; }
+  .hizli-miktarlar { flex-wrap: wrap; }
+  .paket-grid { grid-template-columns: 1fr; }
 }

@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>DemliCoin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,11 +20,10 @@
   </div>
 
   <div id="uygulama">
-    <!-- ÜST BAR -->
     <header class="ust-bar">
       <div class="logo-alan">
-        <div class="logo-mark">DC</div>
-        <span class="logo-text">DemliCoin</span>
+        <img src="/logo.png" class="logo-img" alt="logo" />
+        <span class="logo-text" id="logo-text">DemliCoin</span>
       </div>
       <div class="kullanici-bilgi" id="kullanici-bilgi-alan">
         <span class="nick-pill" id="hosgeldin-nick"></span>
@@ -37,14 +36,14 @@
         <a href="/liderlik" class="nav-link">Liderlik</a>
         <button onclick="cikisYap()" class="btn-ghost-kirmizi">Cikis</button>
       </div>
-      <div id="misafir-alan" style="display:none;">
+      <div id="misafir-alan" style="display:none;gap:8px;align-items:center;">
         <a href="/giris" class="btn-outline">Giris Yap</a>
         <a href="/kayit" class="btn-altin">Kayit Ol</a>
       </div>
     </header>
 
     <div class="ana-icerik">
-      <!-- SOL: Oyuncular -->
+      <!-- Sol panel -->
       <aside class="sol-panel">
         <div class="panel-baslik">
           <span>CEVRIMICI</span>
@@ -53,14 +52,14 @@
         <div id="oyuncu-listesi" class="oyuncu-listesi"></div>
       </aside>
 
-      <!-- ORTA: Grafik + Oyun -->
+      <!-- Orta alan -->
       <main class="orta-alan">
 
-        <!-- Grafik kartı -->
+        <!-- Grafik -->
         <div class="grafik-kart">
           <div class="grafik-header">
             <div class="grafik-sol">
-              <span class="grafik-sembol">DC / JETON</span>
+              <span class="grafik-sembol" id="grafik-sembol">DC / JETON</span>
               <span class="grafik-canli-dot"></span>
               <span class="grafik-canli-text">CANLI</span>
             </div>
@@ -73,7 +72,6 @@
         <div class="bahis-kart" id="bahis-panel" style="display:none;">
           <div class="bahis-header">
             <span class="bahis-baslik">POZİSYON AC</span>
-            <div id="geri-sayim" class="geri-sayim-rakam" style="display:none;">5</div>
           </div>
           <div class="bahis-ic">
             <div class="miktar-grup">
@@ -88,21 +86,35 @@
                 </div>
               </div>
             </div>
-            <button id="bas-btn" class="bas-btn" onclick="basBahistePara()">BAS</button>
+            <div class="bahis-buton-grup">
+              <button id="bas-btn" class="bas-btn" onclick="basBahistePara()">BAS</button>
+              <button id="sat-btn" class="sat-btn" onclick="satisYap()" style="display:none;">SAT</button>
+            </div>
+          </div>
+          <!-- Aktif pozisyon bilgisi -->
+          <div id="aktif-bilgi-wrap" class="aktif-bilgi-wrap" style="display:none;">
+            <span class="aktif-bilgi-text">Giris: <strong id="giris-degeri">—</strong></span>
+            <span class="aktif-bilgi-text">Pozisyon aktif — dilediginizde satin</span>
           </div>
         </div>
 
-        <!-- Giriş uyarısı (misafir) -->
+        <!-- Giriş uyarısı -->
         <div id="giris-uyari" class="giris-uyari-kart">
           <p>Oynamak icin hesap acmalisiniz</p>
           <div class="giris-uyari-butonlar">
-            <a href="/kayit" class="btn-altin">Kayit Ol — 500 Jeton Bedava</a>
-            <a href="/giris" class="btn-outline">Giris Yap</a>
+            <a href="/kayit" class="btn-altin" style="height:42px;font-size:14px;padding:0 20px;">Kayit Ol — 500 Jeton Hediye</a>
+            <a href="/giris" class="btn-outline" style="height:42px;font-size:14px;padding:0 16px;">Giris Yap</a>
           </div>
         </div>
 
         <!-- Item bar -->
         <div id="item-bar" class="item-bar"></div>
+
+        <!-- Promosyon kodu -->
+        <div class="promo-wrap" id="promo-wrap" style="display:none;">
+          <input id="promo-input" class="promo-input" type="text" placeholder="PROMOSYON KODU" maxlength="30" />
+          <button onclick="promoKullan()" class="promo-btn">KULLAN</button>
+        </div>
 
         <!-- Bildirim -->
         <div id="bildirim-bar" class="bildirim-bar" style="display:none;"></div>
@@ -121,6 +133,17 @@
     </div>
   </div>
 
+  <script>
+    // Promo kutusunu giriş yapınca göster
+    window.addEventListener('DOMContentLoaded', () => {
+      fetch('/api/benim-bilgilerim').then(r => {
+        if (r.ok) {
+          const p = document.getElementById('promo-wrap');
+          if (p) p.style.display = 'flex';
+        }
+      }).catch(() => {});
+    });
+  </script>
   <script src="/oyun.js"></script>
 </body>
 </html>

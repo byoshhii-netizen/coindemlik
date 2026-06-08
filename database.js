@@ -92,10 +92,42 @@ db.exec(`
     beceri INTEGER DEFAULT 50,
     aktif INTEGER DEFAULT 1
   );
+
+  CREATE TABLE IF NOT EXISTS promosyon_kodlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kod TEXT UNIQUE NOT NULL,
+    jeton INTEGER DEFAULT 0,
+    item_kod TEXT DEFAULT NULL,
+    item_adet INTEGER DEFAULT 0,
+    sinirli INTEGER DEFAULT 1,
+    kullanim_hakki INTEGER DEFAULT 1,
+    kullanim_sayisi INTEGER DEFAULT 0,
+    aktif INTEGER DEFAULT 1,
+    olusturma_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS promosyon_kullanimlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kod_id INTEGER,
+    kullanici_id INTEGER,
+    tarih DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS site_ayarlari (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    coin_ismi TEXT DEFAULT 'DemliCoin',
+    coin_kisaltma TEXT DEFAULT 'DC'
+  );
 `);
 
 // Renk kolonu yoksa ekle (eski DB uyumu)
 try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN renk TEXT DEFAULT NULL`); } catch(e) {}
+
+// Site ayarları tablosu yoksa ekle
+const siteAyarSayisi = db.prepare('SELECT COUNT(*) as c FROM site_ayarlari').get();
+if (siteAyarSayisi.c === 0) {
+  db.prepare('INSERT INTO site_ayarlari (id) VALUES (1)').run();
+}
 
 // Varsayilan market itemlari
 const itemSayisi = db.prepare('SELECT COUNT(*) as c FROM market_itemlari').get();

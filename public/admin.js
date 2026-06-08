@@ -10,6 +10,8 @@ function goster(id, btn) {
   if (id === 'itemlar') yukleItemlar();
   if (id === 'paketler') yuklePaketler();
   if (id === 'parakopar') yukleParaKopar();
+  if (id === 'promosyon') yuklePromosyonlar();
+  if (id === 'siteayar') yukleSiteAyar();
 }
 
 // ─── GRAFİK ───
@@ -237,6 +239,80 @@ async function koparKaydet() {
   const r = await fetch('/api/admin/para-kopar-ayar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ min_miktar: parseInt(document.getElementById('pk-min').value), max_miktar: parseInt(document.getElementById('pk-max').value) }) });
   const d = await r.json();
   msg('kopar-msg', d.basari ? 'Kaydedildi' : 'Hata', d.basari);
+}
+
+// ─── PROMOSYON ───
+async function yuklePromosyonlar() {
+  const r = await fetch('/api/admin/promosyonlar');
+  const d = await r.json();
+  const tbody = document.getElementById('promo-tbody');
+  tbody.innerHTML = '';
+  if (!d.promolar.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--t3);padding:20px;">Henuz promosyon kodu yok</td></tr>'; return; }
+  const itemIsimler = { 'iki_kat_kar': '2X Kar', 'zarar_kalkan': 'Zarar Kalkani', 'para_kopar': 'Para Kopar' };
+  d.promolar.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td><strong class="mono">${esc(p.kod)}</strong></td>
+        <td class="mono">${p.jeton > 0 ? '+' + p.jeton.toLocaleString('tr-TR') : '—'}</td>
+        <td>${p.item_kod ? `${itemIsimler[p.item_kod]||p.item_kod} x${p.item_adet}` : '—'}</td>
+        <td>${p.sinirli ? `Sinirli (${p.kullanim_hakki} kisi)` : 'Sinirsiz'}</td>
+        <td class="mono">${p.kullanim_sayisi} / ${p.sinirli ? p.kullanim_hakki : '∞'}</td>
+        <td>${p.aktif ? '<span class="rozet rozet-green">Aktif</span>' : '<span class="rozet rozet-red">Pasif</span>'}</td>
+        <td class="btn-grup">
+          ${p.aktif
+            ? `<button class="tbtn tbtn-yellow" onclick="promoToggle(${p.id},false)">Durdur</button>`
+            : `<button class="tbtn tbtn-green" onclick="promoToggle(${p.id},true)">Aktif Et</button>`}
+          <button class="tbtn tbtn-red" onclick="promoSil(${p.id})">Sil</button>
+        </td>
+      </tr>`;
+  });
+}
+
+async function promosyonOlustur() {
+  const body = {
+    kod: document.getElementById('prom-kod').value,
+    jeton: parseInt(document.getElementById('prom-jeton').value) || 0,
+    item_kod: document.getElementById('prom-item').value || null,
+    item_adet: parseInt(document.getElementById('prom-item-adet').value) || 0,
+    sinirli: document.getElementById('prom-sinirli').value === '1',
+    kullanim_hakki: parseInt(document.getElementById('prom-hakki').value) || 1
+  };
+  if (!body.kod) { msg('prom-msg', 'Kod gerekli', false); return; }
+  const r = await fetch('/api/admin/promosyon-olustur', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json();
+  msg('prom-msg', d.mesaj, d.basari);
+  if (d.basari) { document.getElementById('prom-kod').value = ''; yuklePromosyonlar(); }
+}
+
+async function promoToggle(id, aktif) {
+  await fetch('/api/admin/promosyon-toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, aktif }) });
+  yuklePromosyonlar();
+}
+
+async function promoSil(id) {
+  if (!confirm('Bu kodu silmek istediginizden emin misiniz?')) return;
+  await fetch('/api/admin/promosyon-sil', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+  yuklePromosyonlar();
+}
+
+// ─── SİTE AYARLARI ───
+async function yukleSiteAyar() {
+  const r = await fetch('/api/admin/site-ayarlari');
+  const d = await r.json();
+  if (d.basari) {
+    document.getElementById('sa-isim').value = d.ayar.coin_ismi || 'DemliCoin';
+    document.getElementById('sa-kisaltma').value = d.ayar.coin_kisaltma || 'DC';
+  }
+}
+
+async function siteAyarKaydet() {
+  const body = {
+    coin_ismi: document.getElementById('sa-isim').value,
+    coin_kisaltma: document.getElementById('sa-kisaltma').value
+  };
+  const r = await fetch('/api/admin/site-ayarlari', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json();
+  msg('sa-msg', d.basari ? 'Kaydedildi — sayfayi yenileyince guncellenir' : 'Hata', d.basari);
 }
 
 // ─── UTILS ───
