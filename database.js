@@ -116,17 +116,44 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS site_ayarlari (
     id INTEGER PRIMARY KEY DEFAULT 1,
     coin_ismi TEXT DEFAULT 'DemliCoin',
-    coin_kisaltma TEXT DEFAULT 'DC'
+    coin_kisaltma TEXT DEFAULT 'DC',
+    min_bahis INTEGER DEFAULT 150
+  );
+
+  CREATE TABLE IF NOT EXISTS bahis_loglari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_id INTEGER,
+    nick TEXT,
+    miktar INTEGER,
+    giris_degeri REAL,
+    cikis_degeri REAL,
+    sonuc INTEGER,
+    ip TEXT,
+    tarih DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS kullanici_ipler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_id INTEGER,
+    ip TEXT,
+    tarih DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
 
 // Renk kolonu yoksa ekle (eski DB uyumu)
 try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN renk TEXT DEFAULT NULL`); } catch(e) {}
+try { db.exec(`ALTER TABLE site_ayarlari ADD COLUMN min_bahis INTEGER DEFAULT 150`); } catch(e) {}
 
 // Site ayarları tablosu yoksa ekle
 const siteAyarSayisi = db.prepare('SELECT COUNT(*) as c FROM site_ayarlari').get();
 if (siteAyarSayisi.c === 0) {
-  db.prepare('INSERT INTO site_ayarlari (id) VALUES (1)').run();
+  db.prepare('INSERT INTO site_ayarlari (id, min_bahis) VALUES (1, 150)').run();
+} else {
+  // min_bahis 150 default olarak güncelle eğer 10 ise (eski kayıt)
+  const mevcut = db.prepare('SELECT min_bahis FROM site_ayarlari WHERE id = 1').get();
+  if (mevcut && (mevcut.min_bahis === 10 || mevcut.min_bahis === null)) {
+    db.prepare('UPDATE site_ayarlari SET min_bahis = 150 WHERE id = 1').run();
+  }
 }
 
 // Varsayilan market itemlari

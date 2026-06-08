@@ -2,10 +2,16 @@
 const socket = io();
 let kullanici = null;
 let grafikGecmis = [];
+let hedefGecmis = [];   // hedef veri (animasyon için)
 let aktifBahis = null;
 let canvas, ctx;
 let coinIsmi = 'DemliCoin';
 let coinKisaltma = 'DC';
+let minBahis = 150;
+let animFrame = null;
+let animBaslangic = null;
+let animSure = 600; // ms - grafik geçiş animasyonu
+let eskiGecmis = [];  // animasyon başlangıç snapshot
 
 // ─── INIT ───
 async function init() {
@@ -16,11 +22,17 @@ async function init() {
     if (sad.basari) {
       coinIsmi = sad.ayar.coin_ismi || 'DemliCoin';
       coinKisaltma = sad.ayar.coin_kisaltma || 'DC';
+      minBahis = sad.ayar.min_bahis || 150;
       document.title = coinIsmi;
       const logoText = document.getElementById('logo-text');
       if (logoText) logoText.textContent = coinIsmi;
       const grafSembol = document.getElementById('grafik-sembol');
       if (grafSembol) grafSembol.textContent = `${coinKisaltma} / JETON`;
+      // Min bahis göster
+      const minEl = document.getElementById('min-bahis-goster');
+      if (minEl) minEl.textContent = `Min: ${minBahis}`;
+      const bahisInput = document.getElementById('bahis-miktar');
+      if (bahisInput) { bahisInput.min = minBahis; bahisInput.value = minBahis; }
     }
   } catch(e) {}
 
@@ -52,6 +64,7 @@ async function init() {
   const gr = await fetch('/api/grafik-durumu');
   const gd = await gr.json();
   grafikGecmis = gd.gecmis || [];
+  hedefGecmis = grafikGecmis.slice();
   mevcutDegerGuncelle(gd.mevcutDeger);
   grafikCiz();
 
@@ -83,9 +96,13 @@ function boyutlandirCanvas() {
 
 // ─── SOCKET ───
 socket.on('grafik_guncelle', (data) => {
-  grafikGecmis = data.gecmis || [];
+  eskiGecmis = grafikGecmis.slice();  // animasyon için önceki durumu sakla
+  hedefGecmis = data.gecmis || [];
   mevcutDegerGuncelle(data.deger);
-  grafikCiz();
+  // Animasyonlu geçiş başlat
+  animBaslangic = null;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame = requestAnimationFrame(animAdim);
 });
 socket.on('oyuncu_listesi', oyuncuListesiGoster);
 socket.on('chat_mesaj', (data) => { chatEkle(data.nick, data.mesaj, data.tarih, data.jeton, data.renk, data.sira); chatKaydirAsagi(); });
@@ -96,6 +113,37 @@ socket.on('jeton_guncelle', (data) => {
   }
 });
 socket.on('yasaklandi', () => { alert('Hesabiniz yasaklanmistir.'); window.location.href = '/giris'; });
+
+// ─── GRAFİK ANİMASYON ───
+function animAdim(timestamp) {
+  if (!animBaslangic) animBaslangic = timestamp;
+  const gecen = timestamp - animBaslangic;
+  const t = Math.min(gecen / animSure, 1);
+  const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+  // Önceki ve hedef veriyi interpolate et
+  if (eskiGecmis.length === 0 || hedefGecmis.length === 0) {
+    grafikGecmis = hedefGecmis;
+    grafikCiz();
+    return;
+  }
+
+  // Sadece son noktayı animate et (önceki noktalar sabit)
+  const gecmis = hedefGecmis.slice(0, -1);
+  const sonHedef = hedefGecmis[hedefGecmis.length - 1];
+  const sonEski = eskiGecmis[eskiGecmis.length - 1] || sonHedef;
+
+  const interpDeger = sonEski.deger + (sonHedef.deger - sonEski.deger) * ease;
+  grafikGecmis = [...gecmis, { deger: interpDeger, zaman: sonHedef.zaman }];
+  grafikCiz();
+
+  if (t < 1) {
+    animFrame = requestAnimationFrame(animAdim);
+  } else {
+    grafikGecmis = hedefGecmis;
+    grafikCiz();
+  }
+}
 
 // ─── GRAFİK ───
 function grafikCiz() {
@@ -110,6 +158,7 @@ function grafikCiz() {
   const padL = 48, padR = 10, padT = 14, padB = 24;
   const gW = w - padL - padR, gH = h - padT - padB;
 
+  // Grid
   ctx.strokeStyle = 'rgba(255,255,255,0.04)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
@@ -125,10 +174,10 @@ function grafikCiz() {
   const yesil = son >= ilk;
   const rgb = yesil ? '16,185,129' : '239,68,68';
 
+  // Gradient dolgu
   const grad = ctx.createLinearGradient(0, padT, 0, padT + gH);
   grad.addColorStop(0, `rgba(${rgb},0.22)`);
   grad.addColorStop(1, `rgba(${rgb},0)`);
-
   ctx.beginPath();
   grafikGecmis.forEach((p, i) => {
     const x = padL + (i / (grafikGecmis.length - 1)) * gW;
@@ -138,6 +187,7 @@ function grafikCiz() {
   ctx.lineTo(padL + gW, padT + gH); ctx.lineTo(padL, padT + gH); ctx.closePath();
   ctx.fillStyle = grad; ctx.fill();
 
+  // Ana çizgi
   ctx.beginPath();
   ctx.strokeStyle = `rgb(${rgb})`; ctx.lineWidth = 2;
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -148,6 +198,7 @@ function grafikCiz() {
   });
   ctx.stroke();
 
+  // Son nokta
   const lastX = padL + gW;
   const lastY = padT + gH - ((son - minD) / aralik) * gH;
   ctx.beginPath(); ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
@@ -170,6 +221,7 @@ async function basBahistePara() {
 
   const miktar = parseInt(document.getElementById('bahis-miktar').value);
   if (!miktar || miktar < 1) { bildirimGoster('Gecerli bir miktar girin!', false); return; }
+  if (miktar < minBahis) { bildirimGoster(`Minimum bahis ${minBahis} jetondur!`, false); return; }
   if (miktar > kullanici.jeton) { bildirimGoster('Yetersiz jeton!', false); return; }
 
   const r = await fetch('/api/bahis', {

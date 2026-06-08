@@ -28,6 +28,14 @@ function nickRenkAl(nick) {
   return NICK_RENKLERI[Math.abs(hash) % NICK_RENKLERI.length];
 }
 
+// IP alma yardımcısı
+function getIP(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || req.headers['x-real-ip']
+    || req.socket.remoteAddress
+    || 'bilinmiyor';
+}
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -86,6 +94,9 @@ app.post('/api/giris', (req, res) => {
   if (k.yasak) return res.json({ basari: false, mesaj: 'Hesabiniz yasaklanmistir.' });
   if (!bcrypt.compareSync(sifre, k.sifre)) return res.json({ basari: false, mesaj: 'Nick veya sifre hatali.' });
   req.session.kullanici = { id: k.id, nick: k.nick };
+  // IP kaydet
+  const ip = getIP(req);
+  try { db.prepare('INSERT INTO kullanici_ipler (kullanici_id, ip) VALUES (?, ?)').run(k.id, ip); } catch(e) {}
   res.json({ basari: true });
 });
 
@@ -129,6 +140,12 @@ app.post('/api/bahis', (req, res) => {
 
   const miktar = parseInt(req.body.jeton_miktari);
   if (!miktar || miktar < 1) return res.json({ basari: false, mesaj: 'Gecersiz miktar.' });
+
+  // Min bahis kontrolü
+  const ayar = db.prepare('SELECT min_bahis FROM site_ayarlari WHERE id = 1').get();
+  const minBahis = ayar ? (ayar.min_bahis || 150) : 150;
+  if (miktar < minBahis) return res.json({ basari: false, mesaj: `Minimum bahis ${minBahis} jetondur.` });
+
   if (miktar > k.jeton) return res.json({ basari: false, mesaj: 'Yetersiz jeton.' });
 
   const bahisGirdigiDeger = grafik.mevcutDegerAl();
@@ -177,6 +194,13 @@ app.post('/api/sat', (req, res) => {
 
   const yeniJeton = db.prepare('SELECT jeton FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id).jeton;
   io.emit('jeton_guncelle', { kullanici_id: req.session.kullanici.id, jeton: yeniJeton });
+
+  // Bahis logu
+  const ip = getIP(req);
+  try {
+    db.prepare('INSERT INTO bahis_loglari (kullanici_id, nick, miktar, giris_degeri, cikis_degeri, sonuc, ip) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(req.session.kullanici.id, req.session.kullanici.nick, bahis.miktar, bahis.grafik_degeri, mevcutDeger, kazan, ip);
+  } catch(e) {}
 
   res.json({ basari: true, kazanc: kazan, yeniJeton, girdigiDeger: bahis.grafik_degeri, ciktifiDeger: mevcutDeger });
 });
@@ -295,7 +319,11 @@ app.post('/api/admin/grafik-ayar', adminGerektir, (req, res) => {
 });
 
 app.get('/api/admin/oyuncular', adminGerektir, (req, res) => {
-  const oyuncular = db.prepare('SELECT id, nick, jeton, toplam_yatirilan, yasak, chat_yasak, olusturma_tarihi FROM kullanicilar ORDER BY jeton DESC').all();
+  const oyuncular = db.prepare(`
+    SELECT k.id, k.nick, k.jeton, k.toplam_yatirilan, k.yasak, k.chat_yasak, k.olusturma_tarihi,
+      (SELECT ki.ip FROM kullanici_ipler ki WHERE ki.kullanici_id = k.id ORDER BY ki.id DESC LIMIT 1) as son_ip
+    FROM kullanicilar k ORDER BY k.jeton DESC
+  `).all();
   res.json({ basari: true, oyuncular });
 });
 
@@ -361,7 +389,7 @@ app.post('/api/admin/bot-guncelle', adminGerektir, (req, res) => {
 // ─── SİTE AYARLARI API (public) ───
 app.get('/api/site-ayarlari', (req, res) => {
   const ayar = db.prepare('SELECT * FROM site_ayarlari WHERE id = 1').get();
-  res.json({ basari: true, ayar: ayar || { coin_ismi: 'DemliCoin', coin_kisaltma: 'DC' } });
+  res.json({ basari: true, ayar: ayar || { coin_ismi: 'DemliCoin', coin_kisaltma: 'DC', min_bahis: 150 } });
 });
 
 // ─── PROMOSYON API ───
@@ -444,11 +472,54 @@ app.get('/api/admin/site-ayarlari', adminGerektir, (req, res) => {
 });
 
 app.post('/api/admin/site-ayarlari', adminGerektir, (req, res) => {
-  const { coin_ismi, coin_kisaltma } = req.body;
-  db.prepare('UPDATE site_ayarlari SET coin_ismi = ?, coin_kisaltma = ? WHERE id = 1').run(
-    coin_ismi || 'DemliCoin', coin_kisaltma || 'DC'
+  const { coin_ismi, coin_kisaltma, min_bahis } = req.body;
+  db.prepare('UPDATE site_ayarlari SET coin_ismi = ?, coin_kisaltma = ?, min_bahis = ? WHERE id = 1').run(
+    coin_ismi || 'DemliCoin', coin_kisaltma || 'DC', parseInt(min_bahis) || 150
   );
   res.json({ basari: true, mesaj: 'Site ayarlari guncellendi.' });
+});
+
+// ─── ADMIN LOGLAR ───
+app.get('/api/admin/bahis-loglari', adminGerektir, (req, res) => {
+  const { nick, limit } = req.query;
+  let sorgu = 'SELECT * FROM bahis_loglari WHERE 1=1';
+  const params = [];
+  if (nick) { sorgu += ' AND nick LIKE ?'; params.push(`%${nick}%`); }
+  sorgu += ' ORDER BY id DESC LIMIT ?';
+  params.push(parseInt(limit) || 100);
+  res.json({ basari: true, loglar: db.prepare(sorgu).all(...params) });
+});
+
+// ─── ADMIN IP ───
+app.get('/api/admin/kullanici-ipler', adminGerektir, (req, res) => {
+  const { kullanici_id } = req.query;
+  if (kullanici_id) {
+    const ipler = db.prepare('SELECT ip, tarih FROM kullanici_ipler WHERE kullanici_id = ? ORDER BY id DESC LIMIT 20').all(kullanici_id);
+    res.json({ basari: true, ipler });
+  } else {
+    const ipler = db.prepare(`
+      SELECT ki.ip, ki.tarih, k.nick, k.id as kullanici_id
+      FROM kullanici_ipler ki
+      LEFT JOIN kullanicilar k ON ki.kullanici_id = k.id
+      ORDER BY ki.id DESC LIMIT 200
+    `).all();
+    res.json({ basari: true, ipler });
+  }
+});
+
+// ─── ADMIN ŞİFRE ───
+app.get('/api/admin/kullanici-sifre', adminGerektir, (req, res) => {
+  const k = db.prepare('SELECT id, nick, sifre FROM kullanicilar WHERE id = ?').get(req.query.kullanici_id);
+  if (!k) return res.json({ basari: false, mesaj: 'Kullanici bulunamadi.' });
+  res.json({ basari: true, nick: k.nick, sifre_hash: k.sifre });
+});
+
+app.post('/api/admin/kullanici-sifre-degistir', adminGerektir, (req, res) => {
+  const { kullanici_id, yeni_sifre } = req.body;
+  if (!yeni_sifre || yeni_sifre.length < 4) return res.json({ basari: false, mesaj: 'Sifre en az 4 karakter olmali.' });
+  const hash = bcrypt.hashSync(yeni_sifre, 10);
+  db.prepare('UPDATE kullanicilar SET sifre = ? WHERE id = ?').run(hash, kullanici_id);
+  res.json({ basari: true, mesaj: 'Sifre guncellendi.' });
 });
 io.on('connection', (socket) => {
   socket.on('auth', (data) => {
@@ -493,9 +564,22 @@ function yayinlaOyuncular() {
     if (socket.kullanici && !goruldu.has(socket.kullanici.id)) {
       goruldu.add(socket.kullanici.id);
       const k = db.prepare('SELECT id, nick, jeton, renk FROM kullanicilar WHERE id = ?').get(socket.kullanici.id);
-      if (k) oyuncular.push(k);
+      if (k) oyuncular.push({ ...k, bot: false });
     }
   });
+
+  // Aktif botları da ekle (sadece bir kısmını — rastgele 8-12 tanesi)
+  const botlar = db.prepare('SELECT id, nick, jeton FROM botlar WHERE aktif = 1 ORDER BY RANDOM() LIMIT 10').all();
+  botlar.forEach(b => {
+    oyuncular.push({
+      id: `bot_${b.id}`,
+      nick: b.nick,
+      jeton: b.jeton,
+      renk: nickRenkAl(b.nick),
+      bot: true
+    });
+  });
+
   io.emit('oyuncu_listesi', oyuncular);
 }
 
