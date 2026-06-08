@@ -1,6 +1,6 @@
-FROM node:22-slim
+FROM node:20-bullseye-slim
 
-# Build araçları (better-sqlite3 için gerekli)
+# better-sqlite3 native build için gerekli araçlar
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -10,11 +10,12 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY package*.json ./
+
+# Native modülleri derleyerek kur
 RUN npm ci
 
 COPY . .
 
-# Veri klasörü
 RUN mkdir -p data
 
 EXPOSE 3001
