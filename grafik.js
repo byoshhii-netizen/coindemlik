@@ -1,4 +1,4 @@
-// Grafik motoru — smooth, doğal hareket
+// Grafik + Tur motoru
 const db = require('./database');
 
 class GrafikMotoru {
@@ -7,30 +7,55 @@ class GrafikMotoru {
     this.mevcutDeger = 200;
     this.gecmis = [];
     this.maksGecmis = 60;
-    this.timer = null;
-    // Momentum: grafiğin momentum'u (sürekli aynı yöne gitme eğilimi)
+    this.grafTimer = null;
+    this.turTimer = null;
     this.momentum = 0;
-    this.momentumHalfLife = 3; // kaç adımda momentum yarıya düşer
-    this.adimSayisi = 0;
+    // Tur sistemi
+    this.turBitis = null;   // ms timestamp
+    this.turSuresi = 60;    // saniye (DB'den)
+    this.aktifBahisler = new Map(); // socket_id -> bahis bilgisi (sunucu taraflı zorunlu sat)
   }
 
   baslat() {
-    // Başlangıç değeri
     const ayarlar = db.prepare('SELECT * FROM grafik_ayarlari WHERE id = 1').get();
     const min = ayarlar.min_deger || 50;
     const max = ayarlar.max_deger || 500;
-    this.mevcutDeger = min + (max - min) * 0.4; // başlangıç: alt-orta
-    this.adimAt();
+    this.mevcutDeger = min + (max - min) * 0.4;
+    this.turSuresi = ayarlar.tur_suresi || 60;
+    this.grafAdimAt();
+    this.yeniTurBaslat();
   }
 
-  adimAt() {
-    const ayarlar = db.prepare('SELECT * FROM grafik_ayarlari WHERE id = 1').get();
-    let sure = ayarlar.guncelleme_suresi || 5000;
+  // ─── TUR SİSTEMİ ───
+  yeniTurBaslat() {
+    if (this.turTimer) clearTimeout(this.turTimer);
+    const ayarlar = db.prepare('SELECT tur_suresi FROM grafik_ayarlari WHERE id = 1').get();
+    this.turSuresi = (ayarlar && ayarlar.tur_suresi) ? ayarlar.tur_suresi : 60;
+    this.turBitis = Date.now() + this.turSuresi * 1000;
 
-    // Manuel değer varsa kullan
+    this.io.emit('tur_basladi', {
+      turBitis: this.turBitis,
+      turSuresi: this.turSuresi
+    });
+
+    this.turTimer = setTimeout(() => this.turBitti(), this.turSuresi * 1000);
+  }
+
+  turBitti() {
+    // Aktif tüm bahisleri zorla kapat (sunucu taraflı)
+    this.io.emit('tur_bitti');
+
+    // 2 sn sonra yeni tur
+    setTimeout(() => this.yeniTurBaslat(), 2000);
+  }
+
+  // ─── GRAFİK ADİMLAR ───
+  grafAdimAt() {
+    const ayarlar = db.prepare('SELECT * FROM grafik_ayarlari WHERE id = 1').get();
+    const sure = ayarlar.guncelleme_suresi || 3000;
+
     if (ayarlar.siradaki_deger !== null && ayarlar.siradaki_deger !== undefined) {
       this.mevcutDeger = parseFloat(ayarlar.siradaki_deger);
-      if (ayarlar.siradaki_sure) sure = ayarlar.siradaki_sure;
       this.momentum = 0;
       db.prepare('UPDATE grafik_ayarlari SET siradaki_deger = NULL, siradaki_sure = NULL WHERE id = 1').run();
     } else {
@@ -39,43 +64,20 @@ class GrafikMotoru {
       const minDeger = ayarlar.min_deger || 50;
       const maxDeger = ayarlar.max_deger || 500;
       const aralik = maxDeger - minDeger;
-
-      // Pozisyon bazlı baskı: çok yüksekteyse düşme eğilimi artar
-      const pozisyon = (this.mevcutDeger - minDeger) / aralik; // 0-1
-      const pozisyonBaskisi = (pozisyon - 0.5) * 0.3; // -0.15 ile +0.15 arası
-
-      // Efektif artma oranı
+      const pozisyon = (this.mevcutDeger - minDeger) / aralik;
+      const pozisyonBaskisi = (pozisyon - 0.5) * 0.3;
       const efektifArtma = Math.max(0.2, Math.min(0.8, artmaOrani - pozisyonBaskisi));
-
-      // Yön belirle
       const yonyukari = Math.random() < efektifArtma;
-
-      // Değişim miktarı: küçük değişimler daha sık, büyük daha nadir
-      const degisimOrani = Math.pow(Math.random(), 1.5); // 0-1, küçük sayılar daha olası
+      const degisimOrani = Math.pow(Math.random(), 1.5);
       const degisim = degisimOrani * maxDegisim;
-
-      // Momentum uygula
       this.momentum = this.momentum * 0.65 + (yonyukari ? degisim * 0.35 : -degisim * 0.35);
-
-      // Toplam değişim
       const toplamDegisim = (yonyukari ? degisim : -degisim) + this.momentum * 0.4;
-
       this.mevcutDeger += toplamDegisim;
-
-      // Sınırlar içinde tut (yumuşak sınır)
-      if (this.mevcutDeger < minDeger) {
-        this.mevcutDeger = minDeger + Math.abs(this.mevcutDeger - minDeger) * 0.3;
-        this.momentum = Math.abs(this.momentum) * 0.5;
-      }
-      if (this.mevcutDeger > maxDeger) {
-        this.mevcutDeger = maxDeger - Math.abs(this.mevcutDeger - maxDeger) * 0.3;
-        this.momentum = -Math.abs(this.momentum) * 0.5;
-      }
-
+      if (this.mevcutDeger < minDeger) { this.mevcutDeger = minDeger + Math.abs(this.mevcutDeger - minDeger) * 0.3; this.momentum = Math.abs(this.momentum) * 0.5; }
+      if (this.mevcutDeger > maxDeger) { this.mevcutDeger = maxDeger - Math.abs(this.mevcutDeger - maxDeger) * 0.3; this.momentum = -Math.abs(this.momentum) * 0.5; }
       this.mevcutDeger = Math.round(this.mevcutDeger * 100) / 100;
     }
 
-    this.adimSayisi++;
     const zaman = Date.now();
     this.gecmis.push({ deger: this.mevcutDeger, zaman });
     if (this.gecmis.length > this.maksGecmis) this.gecmis.shift();
@@ -83,18 +85,23 @@ class GrafikMotoru {
     this.io.emit('grafik_guncelle', {
       deger: this.mevcutDeger,
       zaman,
-      gecmis: this.gecmis
+      gecmis: this.gecmis,
+      turBitis: this.turBitis
     });
 
-    // Sonraki adım süresi
     const sonraki = db.prepare('SELECT guncelleme_suresi, siradaki_sure FROM grafik_ayarlari WHERE id = 1').get();
-    const sonrakiSure = sonraki.siradaki_sure || sonraki.guncelleme_suresi || 5000;
-    this.timer = setTimeout(() => this.adimAt(), sonrakiSure);
+    const sonrakiSure = sonraki.siradaki_sure || sonraki.guncelleme_suresi || 3000;
+    this.grafTimer = setTimeout(() => this.grafAdimAt(), sonrakiSure);
   }
 
   mevcutDegerAl() { return this.mevcutDeger; }
   gecmisAl() { return this.gecmis; }
-  durdur() { if (this.timer) clearTimeout(this.timer); }
+  turBitisAl() { return this.turBitis; }
+
+  durdur() {
+    if (this.grafTimer) clearTimeout(this.grafTimer);
+    if (this.turTimer) clearTimeout(this.turTimer);
+  }
 }
 
 module.exports = GrafikMotoru;

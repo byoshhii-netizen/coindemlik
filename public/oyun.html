@@ -11,20 +11,37 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <!-- Sonuç overlay -->
+
+  <!-- SONUÇ OVERLAY -->
   <div id="sonuc-overlay" class="sonuc-overlay" style="display:none;">
     <div class="sonuc-ic">
       <div id="sonuc-rakam" class="sonuc-rakam">+0</div>
-      <div class="sonuc-alt">JETON</div>
+      <div id="sonuc-alt" class="sonuc-alt">JETON</div>
     </div>
   </div>
 
+  <!-- TUR BİTTİ BİLDİRİM -->
+  <div id="tur-bildirim" class="tur-bildirim" style="display:none;"></div>
+
+  <!-- DUYURU KAPSAYICI -->
+  <div id="duyuru-kapsayici" class="duyuru-kapsayici"></div>
+
   <div id="uygulama">
+    <!-- ÜST BAR -->
     <header class="ust-bar">
       <div class="logo-alan">
         <img src="/logo.png" class="logo-img" alt="logo" />
         <span class="logo-text" id="logo-text">DemliCoin</span>
       </div>
+
+      <!-- TUR SAYACI -->
+      <div class="tur-sayac-wrap">
+        <div class="tur-ring" id="tur-ring">
+          <span class="tur-sayac-ic" id="tur-sayac">—</span>
+        </div>
+        <span class="tur-label">TUR</span>
+      </div>
+
       <div class="kullanici-bilgi" id="kullanici-bilgi-alan">
         <span class="nick-pill" id="hosgeldin-nick"></span>
         <div class="jeton-pill">
@@ -43,7 +60,7 @@
     </header>
 
     <div class="ana-icerik">
-      <!-- Sol panel -->
+      <!-- SOL PANEL -->
       <aside class="sol-panel">
         <div class="panel-baslik">
           <span>CEVRIMICI</span>
@@ -52,10 +69,10 @@
         <div id="oyuncu-listesi" class="oyuncu-listesi"></div>
       </aside>
 
-      <!-- Orta alan -->
+      <!-- ORTA -->
       <main class="orta-alan">
 
-        <!-- Grafik -->
+        <!-- GRAFİK -->
         <div class="grafik-kart">
           <div class="grafik-header">
             <div class="grafik-sol">
@@ -68,10 +85,13 @@
           <canvas id="grafik-canvas"></canvas>
         </div>
 
-        <!-- Bahis paneli -->
+        <!-- BAHİS PANELİ -->
         <div class="bahis-kart" id="bahis-panel" style="display:none;">
           <div class="bahis-header">
             <span class="bahis-baslik">POZİSYON AC</span>
+            <div class="bahis-header-sag">
+              <span id="anlik-pl" class="anlik-pl"></span>
+            </div>
           </div>
           <div class="bahis-ic">
             <div class="miktar-grup">
@@ -80,12 +100,12 @@
                 <span class="min-bahis-chip" id="min-bahis-goster">Min: 150</span>
               </div>
               <div class="miktar-input-wrap">
-                <input type="number" id="bahis-miktar" value="100" min="1" class="miktar-input" />
+                <input type="number" id="bahis-miktar" value="150" min="1" class="miktar-input" />
                 <div class="hizli-miktarlar">
-                  <button onclick="hizliMiktar(50)">50</button>
-                  <button onclick="hizliMiktar(100)">100</button>
+                  <button onclick="hizliMiktar(150)">150</button>
                   <button onclick="hizliMiktar(250)">250</button>
                   <button onclick="hizliMiktar(500)">500</button>
+                  <button onclick="hizliMiktar(1000)">1000</button>
                 </div>
               </div>
             </div>
@@ -94,35 +114,28 @@
               <button id="sat-btn" class="sat-btn" onclick="satisYap()" style="display:none;">SAT</button>
             </div>
           </div>
-          <!-- Aktif pozisyon bilgisi -->
           <div id="aktif-bilgi-wrap" class="aktif-bilgi-wrap" style="display:none;">
-            <span class="aktif-bilgi-text">Giris: <strong id="giris-degeri">—</strong></span>
-            <span class="aktif-bilgi-text">Pozisyon aktif — dilediginizde satin</span>
+            <span class="aktif-bilgi-text">Giris Degeri: <strong id="giris-degeri">—</strong></span>
+            <span class="aktif-bilgi-text">Pozisyon acik — istediginizde satin</span>
           </div>
         </div>
 
-        <!-- Giriş uyarısı -->
+        <!-- GİRİŞ UYARISI -->
         <div id="giris-uyari" class="giris-uyari-kart">
-          <p>Oynamak icin hesap acmalisiniz</p>
+          <p>Oynamak icin kayit olun veya giris yapin</p>
           <div class="giris-uyari-butonlar">
-            <a href="/kayit" class="btn-altin" style="height:42px;font-size:14px;padding:0 20px;">Kayit Ol — 500 Jeton Hediye</a>
-            <a href="/giris" class="btn-outline" style="height:42px;font-size:14px;padding:0 16px;">Giris Yap</a>
+            <a href="/kayit" class="btn-altin" style="height:44px;font-size:14px;padding:0 22px;">Kayit Ol — 500 Jeton Bedava</a>
+            <a href="/giris" class="btn-outline" style="height:44px;font-size:14px;padding:0 18px;">Giris Yap</a>
           </div>
         </div>
 
-        <!-- Item bar -->
+        <!-- İTEM BAR -->
         <div id="item-bar" class="item-bar"></div>
 
-        <!-- Promosyon kodu -->
-        <div class="promo-wrap" id="promo-wrap" style="display:none;">
-          <input id="promo-input" class="promo-input" type="text" placeholder="PROMOSYON KODU" maxlength="30" />
-          <button onclick="promoKullan()" class="promo-btn">KULLAN</button>
-        </div>
-
-        <!-- Bildirim -->
+        <!-- BİLDİRİM -->
         <div id="bildirim-bar" class="bildirim-bar" style="display:none;"></div>
 
-        <!-- Chat -->
+        <!-- CHAT -->
         <div class="chat-kart">
           <div class="chat-header">CANLI CHAT</div>
           <div id="chat-mesajlar" class="chat-mesajlar"></div>
@@ -137,7 +150,6 @@
   </div>
 
   <script>
-    // Promo kutusunu giriş yapınca göster
     window.addEventListener('DOMContentLoaded', () => {
       fetch('/api/benim-bilgilerim').then(r => {
         if (r.ok) {

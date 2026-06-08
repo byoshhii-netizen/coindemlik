@@ -12,57 +12,64 @@
   <div class="admin-wrap">
     <aside class="admin-sidebar">
       <div class="admin-logo">
-        <div class="logo-mark" style="width:32px;height:32px;font-size:13px;">DC</div>
-        <span>DemliCoin</span>
+        <img src="/logo.png" style="height:26px;border-radius:4px;" alt="" />
+        <span style="font-size:14px;font-weight:800;">DemliCoin</span>
         <span class="admin-badge">ADM</span>
       </div>
       <nav class="admin-nav">
-        <button class="anav-btn aktif" onclick="goster('grafik',this)">Grafik Kontrol</button>
+        <div class="anav-group-label">OYUN</div>
+        <button class="anav-btn aktif" onclick="goster('grafik',this)">Grafik &amp; Tur</button>
+        <button class="anav-btn" onclick="goster('duyuru',this)">Duyurular</button>
+        <div class="anav-group-label">KULLANICILAR</div>
         <button class="anav-btn" onclick="goster('oyuncular',this)">Oyuncular</button>
         <button class="anav-btn" onclick="goster('botlar',this)">Botlar</button>
+        <button class="anav-btn" onclick="goster('chatcanli',this)">Canli Chat</button>
         <button class="anav-btn" onclick="goster('chat',this)">Chat Gecmisi</button>
         <button class="anav-btn" onclick="goster('loglar',this)">Bahis Loglari</button>
         <button class="anav-btn" onclick="goster('ipler',this)">IP Kayitlari</button>
-        <button class="anav-btn" onclick="goster('itemlar',this)">Market Itemler</button>
+        <div class="anav-group-label">MARKET</div>
+        <button class="anav-btn" onclick="goster('itemlar',this)">Ozel Gucler</button>
         <button class="anav-btn" onclick="goster('paketler',this)">Jeton Paketleri</button>
-        <button class="anav-btn" onclick="goster('parakopar',this)">Para Kopar</button>
         <button class="anav-btn" onclick="goster('promosyon',this)">Promosyon Kodlari</button>
+        <button class="anav-btn" onclick="goster('parakopar',this)">Para Kopar</button>
+        <div class="anav-group-label">SİSTEM</div>
         <button class="anav-btn" onclick="goster('siteayar',this)">Site Ayarlari</button>
       </nav>
-      <button onclick="cikis()" class="admin-cikis-btn">Cikis Yap</button>
+      <button onclick="cikis()" class="admin-cikis-btn">Cikis</button>
     </aside>
 
     <main class="admin-main">
 
-      <!-- GRAFIK -->
+      <!-- GRAFİK & TUR -->
       <section id="panel-grafik" class="admin-panel aktif-panel">
-        <h2 class="admin-h2">Grafik Kontrol</h2>
+        <h2 class="admin-h2">Grafik &amp; Tur Kontrolu</h2>
         <div class="admin-grid">
 
           <div class="admin-kart">
-            <h3>Hiz ve Hareket</h3>
+            <h3>Grafik Hareketi</h3>
             <div class="fg">
               <label>Guncelleme Hizi</label>
               <select id="g-sure">
-                <option value="3000">Hizli (3 sn)</option>
-                <option value="5000" selected>Normal (5 sn)</option>
-                <option value="8000">Yavas (8 sn)</option>
-                <option value="15000">Cok Yavas (15 sn)</option>
+                <option value="2000">Cok Hizli (2sn)</option>
+                <option value="3000" selected>Hizli (3sn)</option>
+                <option value="5000">Normal (5sn)</option>
+                <option value="8000">Yavas (8sn)</option>
+                <option value="15000">Cok Yavas (15sn)</option>
               </select>
             </div>
             <div class="fg">
               <label>Yukselis / Dusus Orani</label>
               <select id="g-artma">
-                <option value="0.35">Cok Dusucu (%35 yukselis)</option>
-                <option value="0.45">Biraz Dusucu (%45 yukselis)</option>
-                <option value="0.50">Dengeli (%50-%50)</option>
-                <option value="0.55" selected>Biraz Yukselen (%55 yukselis)</option>
-                <option value="0.65">Yukselen (%65 yukselis)</option>
-                <option value="0.75">Cok Yukselen (%75 yukselis)</option>
+                <option value="0.30">Cok Dusucu (%30)</option>
+                <option value="0.40">Dusucu (%40)</option>
+                <option value="0.50">Dengeli (%50)</option>
+                <option value="0.55" selected>Hafif Yukselen (%55)</option>
+                <option value="0.65">Yukselen (%65)</option>
+                <option value="0.75">Cok Yukselen (%75)</option>
               </select>
             </div>
             <div class="fg">
-              <label>Dalgalanma Siddeti</label>
+              <label>Dalgalanma</label>
               <select id="g-degisim">
                 <option value="10">Cok Sakin</option>
                 <option value="20">Sakin</option>
@@ -71,21 +78,44 @@
                 <option value="120">Cok Dalgali</option>
               </select>
             </div>
+            <div class="fg">
+              <label>Min Deger</label>
+              <input id="g-min" type="number" value="50" min="10" />
+            </div>
+            <div class="fg">
+              <label>Max Deger</label>
+              <input id="g-max" type="number" value="500" min="50" />
+            </div>
             <button class="admin-btn-ana" onclick="grafigKaydet()">Kaydet</button>
             <div id="grafik-msg" class="admin-msg" style="display:none;"></div>
           </div>
 
           <div class="admin-kart">
-            <h3>Sonraki Adimi Belirle</h3>
-            <p class="admin-aciklama">Grafigi bir sonraki adimda belirli bir deger yapabilirsin. Bir kez uygulanir, sonra otomatikte devam eder.</p>
+            <h3>Tur Suresi</h3>
+            <div class="fg">
+              <label>Tur Suresi (saniye)</label>
+              <select id="g-tur-suresi">
+                <option value="30">30 saniye</option>
+                <option value="60" selected>1 dakika</option>
+                <option value="120">2 dakika</option>
+                <option value="180">3 dakika</option>
+                <option value="300">5 dakika</option>
+              </select>
+              <small>Bir sonraki turdan itibaren gecerli olur</small>
+            </div>
+            <button class="admin-btn-ana" onclick="grafigKaydet()">Kaydet</button>
+          </div>
+
+          <div class="admin-kart">
+            <h3>Manuel Grafik Adimi</h3>
+            <p class="admin-aciklama">Bir sonraki grafik adimini belirle. Bir kez uygulanir, sonra otomatikte devam eder.</p>
             <div class="fg">
               <label>Hedef Deger</label>
               <input id="g-siradaki" type="number" placeholder="ornek: 300" />
             </div>
             <div class="fg">
-              <label>Bu Degerde Kalma Suresi (ms)</label>
+              <label>Kalma Suresi (ms, bos = normal)</label>
               <input id="g-siradaki-sure" type="number" placeholder="ornek: 5000" />
-              <small>Bos birakirsan normal sure gecer</small>
             </div>
             <button class="admin-btn-uyari" onclick="manuelGrafik()">Uygula</button>
           </div>
@@ -93,12 +123,119 @@
         </div>
       </section>
 
-      <!-- BAHİS LOGLARI -->
+      <!-- DUYURULAR -->
+      <section id="panel-duyuru" class="admin-panel">
+        <h2 class="admin-h2">Duyuru Yonetimi</h2>
+        <div class="admin-grid" style="margin-bottom:20px;">
+          <div class="admin-kart">
+            <h3>Yeni Duyuru</h3>
+            <div class="fg"><label>Baslik</label><input id="du-baslik" type="text" placeholder="Duyuru basligi" /></div>
+            <div class="fg"><label>Icerik</label><textarea id="du-icerik" rows="3" placeholder="Duyuru metni..."></textarea></div>
+            <div class="fg">
+              <label>Renk / Tip</label>
+              <select id="du-renk">
+                <option value="gold">Altin (onemli)</option>
+                <option value="yesil">Yesil (bilgi)</option>
+                <option value="kirmizi">Kirmizi (uyari)</option>
+                <option value="mavi">Mavi (duyuru)</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Gosterim Suresi (dakika, 0 = sinirsiz)</label>
+              <input id="du-sure" type="number" value="0" min="0" />
+            </div>
+            <button class="admin-btn-ana" onclick="duyuruEkle()">Yayinla</button>
+            <div id="du-msg" class="admin-msg" style="display:none;"></div>
+          </div>
+        </div>
+
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;">Mevcut Duyurular</h3>
+        <div id="duyuru-liste" class="admin-grid"></div>
+      </section>
+
+      <!-- OYUNCULAR -->
+      <section id="panel-oyuncular" class="admin-panel">
+        <div class="admin-panel-ust">
+          <h2 class="admin-h2">Oyuncular</h2>
+          <button class="admin-btn-kucuk" onclick="yukleOyuncular()">Yenile</button>
+        </div>
+        <div class="tablo-wrap">
+          <table class="admin-tablo">
+            <thead><tr><th>Nick</th><th>Jeton</th><th>Yatirim</th><th>Kayit</th><th>Son IP</th><th>Durum</th><th>Islemler</th></tr></thead>
+            <tbody id="oyuncu-tbody"></tbody>
+          </table>
+        </div>
+        <div id="sifre-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+          <div class="admin-kart" style="max-width:380px;width:90%;">
+            <h3 id="sifre-modal-baslik">Sifre</h3>
+            <div class="fg"><label>Mevcut Sifre Hash</label><input id="sifre-hash-goster" readonly style="font-size:10px;font-family:monospace;" /></div>
+            <div class="fg"><label>Yeni Sifre</label><input id="sifre-yeni" type="text" placeholder="yeni sifre (min 4 karakter)" /></div>
+            <div style="display:flex;gap:8px;">
+              <button class="admin-btn-ana" onclick="sifreDegistir()">Degistir</button>
+              <button class="admin-btn-kucuk" onclick="sifreModalKapat()">Iptal</button>
+            </div>
+            <div id="sifre-msg" class="admin-msg" style="display:none;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BOTLAR -->
+      <section id="panel-botlar" class="admin-panel">
+        <div class="admin-panel-ust">
+          <h2 class="admin-h2">Botlar</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="admin-btn-ana" onclick="botlarTopluKaydet()">Toplu Kaydet</button>
+            <button class="admin-btn-kucuk" onclick="yukleBotlar()">Yenile</button>
+          </div>
+        </div>
+        <div class="tablo-wrap">
+          <table class="admin-tablo">
+            <thead><tr><th>Nick</th><th>Jeton</th><th>Beceri (0-100)</th><th>Durum</th></tr></thead>
+            <tbody id="bot-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CANLI CHAT -->
+      <section id="panel-chatcanli" class="admin-panel">
+        <div class="admin-panel-ust">
+          <h2 class="admin-h2">Canli Chat</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="admin-btn-kucuk" onclick="yukleCanliChat()">Yenile</button>
+            <button class="admin-btn-tehlike" onclick="tumChatSil()">Tum Chati Temizle</button>
+          </div>
+        </div>
+        <div class="tablo-wrap">
+          <table class="admin-tablo">
+            <thead><tr><th>Zaman</th><th>Nick</th><th>Mesaj</th><th>Sil</th></tr></thead>
+            <tbody id="canli-chat-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CHAT GEÇMİŞİ -->
+      <section id="panel-chat" class="admin-panel">
+        <h2 class="admin-h2">Chat Gecmisi</h2>
+        <div class="filtre-bar">
+          <div class="fg"><label>Gun</label><input type="date" id="chat-gun" /></div>
+          <div class="fg"><label>Saat (0-23)</label><input type="number" id="chat-saat" placeholder="14" min="0" max="23" /></div>
+          <button class="admin-btn-ana" onclick="yukleChat()">Ara</button>
+        </div>
+        <div id="chat-liste" class="chat-gecmis"></div>
+      </section>
+
+      <!-- LOGLAR -->
       <section id="panel-loglar" class="admin-panel">
         <h2 class="admin-h2">Bahis Loglari</h2>
         <div class="filtre-bar">
-          <div class="fg"><label>Nick Ara</label><input type="text" id="log-nick" placeholder="nick..." /></div>
-          <div class="fg"><label>Limit</label><select id="log-limit"><option value="50">Son 50</option><option value="100" selected>Son 100</option><option value="500">Son 500</option></select></div>
+          <div class="fg"><label>Nick</label><input type="text" id="log-nick" placeholder="nick..." /></div>
+          <div class="fg"><label>Limit</label>
+            <select id="log-limit">
+              <option value="50">Son 50</option>
+              <option value="100" selected>Son 100</option>
+              <option value="500">Son 500</option>
+            </select>
+          </div>
           <button class="admin-btn-ana" onclick="yukleLoglari()">Getir</button>
         </div>
         <div class="tablo-wrap">
@@ -113,102 +250,36 @@
       <section id="panel-ipler" class="admin-panel">
         <h2 class="admin-h2">IP Kayitlari</h2>
         <div class="filtre-bar" style="margin-bottom:16px;">
-          <button class="admin-btn-ana" onclick="yukleIpler()">Tum IP Kayitlarini Getir</button>
+          <button class="admin-btn-ana" onclick="yukleIpler()">Getir</button>
         </div>
         <div class="tablo-wrap">
           <table class="admin-tablo">
-            <thead><tr><th>Tarih</th><th>Nick</th><th>IP Adresi</th></tr></thead>
+            <thead><tr><th>Tarih</th><th>Nick</th><th>IP</th></tr></thead>
             <tbody id="ip-tbody"></tbody>
           </table>
         </div>
       </section>
 
-      <!-- OYUNCULAR (updated with password) -->
-      <!-- OYUNCULAR -->
-      <section id="panel-oyuncular" class="admin-panel">
-        <div class="admin-panel-ust">
-          <h2 class="admin-h2">Oyuncular</h2>
-          <button class="admin-btn-kucuk" onclick="yukleOyuncular()">Yenile</button>
-        </div>
-        <div class="tablo-wrap">
-          <table class="admin-tablo">
-            <thead><tr><th>Nick</th><th>Jeton</th><th>Yatirim</th><th>Kayit</th><th>Son IP</th><th>Durum</th><th>Islemler</th></tr></thead>
-            <tbody id="oyuncu-tbody"></tbody>
-          </table>
-        </div>
-        <!-- Sifre degistirme modal -->
-        <div id="sifre-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center;">
-          <div class="admin-kart" style="max-width:380px;width:100%;position:relative;">
-            <h3 id="sifre-modal-baslik">Sifre Degistir</h3>
-            <div class="fg"><label>Mevcut Sifre Hash</label><input id="sifre-hash-goster" readonly style="font-size:10px;font-family:monospace;" /></div>
-            <div class="fg"><label>Yeni Sifre</label><input id="sifre-yeni" type="text" placeholder="yeni sifre (min 4 karakter)" /></div>
-            <div style="display:flex;gap:8px;margin-top:4px;">
-              <button class="admin-btn-ana" onclick="sifreDegistir()">Degistir</button>
-              <button class="admin-btn-kucuk" onclick="sifreModalKapat()">Iptal</button>
-            </div>
-            <div id="sifre-msg" class="admin-msg" style="display:none;"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- BOTLAR -->
-      <section id="panel-botlar" class="admin-panel">
-        <div class="admin-panel-ust">
-          <h2 class="admin-h2">Botlar</h2>
-          <button class="admin-btn-kucuk" onclick="yukleBotlar()">Yenile</button>
-        </div>
-        <div class="tablo-wrap">
-          <table class="admin-tablo">
-            <thead><tr><th>Nick</th><th>Jeton</th><th>Beceri (0-100)</th><th>Durum</th><th>Kaydet</th></tr></thead>
-            <tbody id="bot-tbody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- CHAT -->
-      <section id="panel-chat" class="admin-panel">
-        <h2 class="admin-h2">Chat Gecmisi</h2>
-        <div class="filtre-bar">
-          <div class="fg"><label>Gun</label><input type="date" id="chat-gun" /></div>
-          <div class="fg"><label>Saat (0-23)</label><input type="number" id="chat-saat" placeholder="14" min="0" max="23" /></div>
-          <button class="admin-btn-ana" onclick="yukleChat()">Ara</button>
-        </div>
-        <div id="chat-liste" class="chat-gecmis"></div>
-      </section>
-
-      <!-- ITEMLAR -->
+      <!-- OZEL GUCLER -->
       <section id="panel-itemlar" class="admin-panel">
-        <h2 class="admin-h2">Market Item Ayarlari</h2>
+        <h2 class="admin-h2">Ozel Guc Ayarlari</h2>
         <div id="item-liste" class="admin-grid"></div>
       </section>
 
-      <!-- PAKETLER -->
+      <!-- JETON PAKETLERİ -->
       <section id="panel-paketler" class="admin-panel">
         <h2 class="admin-h2">Jeton Paketleri</h2>
         <div id="paket-liste" class="admin-grid"></div>
       </section>
 
-      <!-- PARA KOPAR -->
-      <section id="panel-parakopar" class="admin-panel">
-        <h2 class="admin-h2">Para Kopar Ayari</h2>
-        <div class="admin-kart" style="max-width:360px">
-          <h3>Calinabilir Miktar Araligi</h3>
-          <div class="fg"><label>Minimum Jeton</label><input id="pk-min" type="number" value="10" /></div>
-          <div class="fg"><label>Maksimum Jeton</label><input id="pk-max" type="number" value="100" /></div>
-          <button class="admin-btn-ana" onclick="koparKaydet()">Kaydet</button>
-          <div id="kopar-msg" class="admin-msg" style="display:none;"></div>
-        </div>
-      </section>
-
-      <!-- PROMOSYON KODLARI -->
+      <!-- PROMOSYON -->
       <section id="panel-promosyon" class="admin-panel">
         <h2 class="admin-h2">Promosyon Kodlari</h2>
-        <div class="admin-kart" style="max-width:520px;margin-bottom:20px;">
+        <div class="admin-kart" style="max-width:500px;margin-bottom:20px;">
           <h3>Yeni Kod Olustur</h3>
-          <div class="fg"><label>Kod (otomatik buyuk harf)</label><input id="prom-kod" type="text" placeholder="ornek: HOSGELDIN2024" maxlength="30" /></div>
+          <div class="fg"><label>Kod</label><input id="prom-kod" type="text" placeholder="HOSGELDIN2024" maxlength="30" /></div>
           <div class="fg"><label>Verilecek Jeton</label><input id="prom-jeton" type="number" value="0" min="0" /></div>
-          <div class="fg">
-            <label>Verilecek Item</label>
+          <div class="fg"><label>Item</label>
             <select id="prom-item">
               <option value="">Yok</option>
               <option value="iki_kat_kar">2X Kar</option>
@@ -217,18 +288,16 @@
             </select>
           </div>
           <div class="fg"><label>Item Adeti</label><input id="prom-item-adet" type="number" value="0" min="0" /></div>
-          <div class="fg">
-            <label>Kullanim Tipi</label>
+          <div class="fg"><label>Kullanim Tipi</label>
             <select id="prom-sinirli">
-              <option value="1">Sinirli (birkac kisi kullanabilir)</option>
-              <option value="0">Sinirsiz (herkes kullanabilir)</option>
+              <option value="1">Sinirli</option>
+              <option value="0">Sinirsiz</option>
             </select>
           </div>
-          <div class="fg"><label>Kullanim Hakki (sinirli secildiyse)</label><input id="prom-hakki" type="number" value="1" min="1" /><small>Her kullanici 1 kez kullanabilir. Bu sayi kac farkli kisi kullanabilecegini belirler.</small></div>
-          <button class="admin-btn-ana" onclick="promosyonOlustur()">Kodu Olustur</button>
+          <div class="fg"><label>Kisi Limiti</label><input id="prom-hakki" type="number" value="1" min="1" /><small>Her kisi 1 kez kullanabilir</small></div>
+          <button class="admin-btn-ana" onclick="promosyonOlustur()">Olustur</button>
           <div id="prom-msg" class="admin-msg" style="display:none;"></div>
         </div>
-
         <div class="tablo-wrap">
           <table class="admin-tablo">
             <thead><tr><th>Kod</th><th>Jeton</th><th>Item</th><th>Tip</th><th>Kullanim</th><th>Durum</th><th>Islem</th></tr></thead>
@@ -237,14 +306,26 @@
         </div>
       </section>
 
+      <!-- PARA KOPAR -->
+      <section id="panel-parakopar" class="admin-panel">
+        <h2 class="admin-h2">Para Kopar Ayari</h2>
+        <div class="admin-kart" style="max-width:360px;">
+          <h3>Calinabilir Miktar</h3>
+          <div class="fg"><label>Minimum Jeton</label><input id="pk-min" type="number" value="10" /></div>
+          <div class="fg"><label>Maksimum Jeton</label><input id="pk-max" type="number" value="100" /></div>
+          <button class="admin-btn-ana" onclick="koparKaydet()">Kaydet</button>
+          <div id="kopar-msg" class="admin-msg" style="display:none;"></div>
+        </div>
+      </section>
+
       <!-- SITE AYARLARI -->
       <section id="panel-siteayar" class="admin-panel">
         <h2 class="admin-h2">Site Ayarlari</h2>
-        <div class="admin-kart" style="max-width:420px">
-          <h3>Coin ve Oyun Ayarlari</h3>
+        <div class="admin-kart" style="max-width:420px;">
+          <h3>Coin &amp; Oyun</h3>
           <div class="fg"><label>Coin Ismi</label><input id="sa-isim" type="text" placeholder="DemliCoin" /></div>
           <div class="fg"><label>Coin Kisaltmasi</label><input id="sa-kisaltma" type="text" placeholder="DC" maxlength="6" /></div>
-          <div class="fg"><label>Minimum Bahis (Jeton)</label><input id="sa-min-bahis" type="number" value="150" min="1" /><small>Oyuncular bu miktardan az bahis yapamaz</small></div>
+          <div class="fg"><label>Minimum Bahis (Jeton)</label><input id="sa-min-bahis" type="number" value="150" min="1" /></div>
           <button class="admin-btn-ana" onclick="siteAyarKaydet()">Kaydet</button>
           <div id="sa-msg" class="admin-msg" style="display:none;"></div>
         </div>

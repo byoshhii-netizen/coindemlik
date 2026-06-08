@@ -1117,3 +1117,188 @@ body {
 
 /* ── Log tablosu küçük font ── */
 .mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ══════════════════════════════════════════════
+   TUR SAYACI
+   ══════════════════════════════════════════════ */
+.tur-sayac-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.tur-ring {
+  width: 48px; height: 48px;
+  border: 3px solid var(--green);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.5s;
+  box-shadow: 0 0 12px rgba(16,185,129,0.2);
+}
+.tur-sayac-ic {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px; font-weight: 800;
+  color: var(--green);
+  transition: color 0.5s;
+  line-height: 1;
+}
+.tur-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  color: var(--t3); text-transform: uppercase;
+}
+
+/* Tur bildirim banner */
+.tur-bildirim {
+  position: fixed;
+  top: 68px; left: 50%; transform: translateX(-50%);
+  padding: 10px 32px;
+  border-radius: 8px;
+  font-size: 16px; font-weight: 800; letter-spacing: 0.1em;
+  z-index: 5000;
+  animation: turGel 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes turGel { from{opacity:0;transform:translateX(-50%) scale(0.7)} to{opacity:1;transform:translateX(-50%) scale(1)} }
+.tur-yeni { background: var(--bg-2); color: var(--green); border: 1px solid rgba(16,185,129,0.4); }
+.tur-bitti-cls { background: var(--bg-2); color: var(--red); border: 1px solid rgba(239,68,68,0.4); }
+
+/* Anlık P&L */
+.anlik-pl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px; font-weight: 800;
+  letter-spacing: -0.02em;
+  transition: color 0.2s;
+}
+.pl-pozitif { color: var(--green); }
+.pl-negatif { color: var(--red); }
+
+.bahis-header-sag { display: flex; align-items: center; }
+
+/* ══════════════════════════════════════════════
+   DUYURU SİSTEMİ
+   ══════════════════════════════════════════════ */
+.duyuru-kapsayici {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 4000;
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 360px; width: calc(100vw - 40px);
+}
+
+.duyuru-karti {
+  background: var(--bg-2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+  border-left: 4px solid var(--gold);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: duyuruGel 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.duyuru-karti.duyuru-cikis {
+  animation: duyuruGit 0.4s ease forwards;
+}
+@keyframes duyuruGel {
+  from { opacity:0; transform: translateX(80px) scale(0.85); }
+  to   { opacity:1; transform: translateX(0) scale(1); }
+}
+@keyframes duyuruGit {
+  to { opacity:0; transform: translateX(80px) scale(0.85); }
+}
+
+.duyuru-gold    { border-left-color: var(--gold); }
+.duyuru-yesil   { border-left-color: var(--green); }
+.duyuru-kirmizi { border-left-color: var(--red); }
+.duyuru-mavi    { border-left-color: var(--blue); }
+
+.duyuru-ic { flex: 1; }
+.duyuru-baslik { display: block; font-size: 13px; font-weight: 800; color: var(--t1); margin-bottom: 4px; }
+.duyuru-icerik { font-size: 12px; color: var(--t2); line-height: 1.5; }
+.duyuru-kapat {
+  background: transparent; border: none;
+  color: var(--t3); font-size: 18px; line-height: 1;
+  cursor: pointer; padding: 0; flex-shrink: 0;
+  margin-top: -2px; transition: color 0.15s;
+}
+.duyuru-kapat:hover { color: var(--t1); }
+
+/* ══════════════════════════════════════════════
+   KOYU ARKA PLAN (Railway uyumlu)
+   ══════════════════════════════════════════════ */
+:root {
+  --bg-deep: #02040a;
+  --bg-base: #040812;
+  --bg-1:    #080e1e;
+  --bg-2:    #0c1428;
+  --bg-3:    #111c36;
+  --bg-4:    #172440;
+  --bg-5:    #1d2c4c;
+}
+
+body {
+  background: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(99,102,241,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 0% 100%, rgba(16,185,129,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(240,180,41,0.04) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+.auth-sayfa {
+  background:
+    radial-gradient(ellipse 100% 80% at 50% -10%, rgba(240,180,41,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 90%, rgba(99,102,241,0.05) 0%, transparent 50%),
+    var(--bg-deep) !important;
+}
+
+.sayfa-body {
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -5%, rgba(240,180,41,0.04) 0%, transparent 50%),
+    var(--bg-deep) !important;
+}
+
+.orta-alan {
+  background: linear-gradient(180deg, var(--bg-base) 0%, var(--bg-deep) 60%) !important;
+}
+
+/* Admin sidebar daha koyu */
+.admin-body { background: var(--bg-deep) !important; }
+.admin-sidebar { background: rgba(4,8,18,0.95) !important; }
+.admin-main { background: var(--bg-deep) !important; }
+
+/* Admin grup etiketleri */
+.anav-group-label {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.15em;
+  color: var(--t3); text-transform: uppercase;
+  padding: 12px 12px 4px;
+  margin-top: 4px;
+}
+
+/* Admin tehlike butonu */
+.admin-btn-tehlike {
+  height: 30px; padding: 0 12px;
+  background: var(--red-dim); border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--rad); color: var(--red);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: 'Inter', sans-serif; transition: background 0.15s;
+}
+.admin-btn-tehlike:hover { background: rgba(239,68,68,0.2); }
+
+/* ─── Sol panel - jeton belirgin ─── */
+.oyuncu-satir { align-items: center; padding: 8px 14px; }
+.oyuncu-nick  { font-size: 13px; font-weight: 700; }
+.oyuncu-jeton {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: var(--gold);
+  font-weight: 700; flex-shrink: 0;
+}
+
+/* Grafik değer daha büyük */
+.canli-deger { font-size: 32px !important; }
+
+/* Bahis kademe & jeton belirgin */
+.miktar-input {
+  font-size: 26px !important; height: 56px !important;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 640px) {
+  .tur-sayac-wrap { display: none; }
+  .duyuru-kapsayici { bottom: 10px; right: 10px; max-width: calc(100vw - 20px); }
+}

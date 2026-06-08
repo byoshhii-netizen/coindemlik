@@ -18,16 +18,13 @@ db.exec(`
     renk TEXT DEFAULT NULL,
     olusturma_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP
   );
-
   CREATE TABLE IF NOT EXISTS chat_mesajlari (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kullanici_id INTEGER,
     nick TEXT,
     mesaj TEXT,
-    tarih DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(kullanici_id) REFERENCES kullanicilar(id)
+    tarih DATETIME DEFAULT CURRENT_TIMESTAMP
   );
-
   CREATE TABLE IF NOT EXISTS islemler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kullanici_id INTEGER,
@@ -35,10 +32,8 @@ db.exec(`
     miktar INTEGER,
     grafik_degeri REAL,
     sonuc INTEGER,
-    tarih DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(kullanici_id) REFERENCES kullanicilar(id)
+    tarih DATETIME DEFAULT CURRENT_TIMESTAMP
   );
-
   CREATE TABLE IF NOT EXISTS market_itemlari (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kod TEXT UNIQUE NOT NULL,
@@ -49,15 +44,12 @@ db.exec(`
     kullanim_hakki INTEGER DEFAULT 3,
     aktif INTEGER DEFAULT 1
   );
-
   CREATE TABLE IF NOT EXISTS kullanici_itemlari (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kullanici_id INTEGER,
     item_kod TEXT,
-    kalan_kullanim INTEGER,
-    FOREIGN KEY(kullanici_id) REFERENCES kullanicilar(id)
+    kalan_kullanim INTEGER
   );
-
   CREATE TABLE IF NOT EXISTS jeton_paketleri (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     isim TEXT NOT NULL,
@@ -66,25 +58,23 @@ db.exec(`
     para_birimi TEXT DEFAULT 'tl',
     aktif INTEGER DEFAULT 1
   );
-
   CREATE TABLE IF NOT EXISTS grafik_ayarlari (
     id INTEGER PRIMARY KEY DEFAULT 1,
-    guncelleme_suresi INTEGER DEFAULT 5000,
-    min_deger REAL DEFAULT 10,
+    guncelleme_suresi INTEGER DEFAULT 3000,
+    min_deger REAL DEFAULT 50,
     max_deger REAL DEFAULT 500,
     artma_orani REAL DEFAULT 0.55,
     azalma_orani REAL DEFAULT 0.45,
     max_degisim REAL DEFAULT 40,
     siradaki_deger REAL DEFAULT NULL,
-    siradaki_sure INTEGER DEFAULT NULL
+    siradaki_sure INTEGER DEFAULT NULL,
+    tur_suresi INTEGER DEFAULT 60
   );
-
   CREATE TABLE IF NOT EXISTS para_kopar_ayar (
     id INTEGER PRIMARY KEY DEFAULT 1,
     min_miktar INTEGER DEFAULT 10,
     max_miktar INTEGER DEFAULT 100
   );
-
   CREATE TABLE IF NOT EXISTS botlar (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nick TEXT UNIQUE NOT NULL,
@@ -92,7 +82,6 @@ db.exec(`
     beceri INTEGER DEFAULT 50,
     aktif INTEGER DEFAULT 1
   );
-
   CREATE TABLE IF NOT EXISTS promosyon_kodlari (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kod TEXT UNIQUE NOT NULL,
@@ -105,21 +94,18 @@ db.exec(`
     aktif INTEGER DEFAULT 1,
     olusturma_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP
   );
-
   CREATE TABLE IF NOT EXISTS promosyon_kullanimlari (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kod_id INTEGER,
     kullanici_id INTEGER,
     tarih DATETIME DEFAULT CURRENT_TIMESTAMP
   );
-
   CREATE TABLE IF NOT EXISTS site_ayarlari (
     id INTEGER PRIMARY KEY DEFAULT 1,
     coin_ismi TEXT DEFAULT 'DemliCoin',
     coin_kisaltma TEXT DEFAULT 'DC',
     min_bahis INTEGER DEFAULT 150
   );
-
   CREATE TABLE IF NOT EXISTS bahis_loglari (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kullanici_id INTEGER,
@@ -131,32 +117,52 @@ db.exec(`
     ip TEXT,
     tarih DATETIME DEFAULT CURRENT_TIMESTAMP
   );
-
   CREATE TABLE IF NOT EXISTS kullanici_ipler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kullanici_id INTEGER,
     ip TEXT,
     tarih DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS duyurular (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    baslik TEXT NOT NULL,
+    icerik TEXT NOT NULL,
+    renk TEXT DEFAULT 'gold',
+    sure_dk INTEGER DEFAULT 0,
+    aktif INTEGER DEFAULT 1,
+    olusturma_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS chat_silindi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tarih DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
-// Renk kolonu yoksa ekle (eski DB uyumu)
+// Eski DB uyum kolonları
 try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN renk TEXT DEFAULT NULL`); } catch(e) {}
 try { db.exec(`ALTER TABLE site_ayarlari ADD COLUMN min_bahis INTEGER DEFAULT 150`); } catch(e) {}
+try { db.exec(`ALTER TABLE grafik_ayarlari ADD COLUMN tur_suresi INTEGER DEFAULT 60`); } catch(e) {}
 
-// Site ayarları tablosu yoksa ekle
+// Site ayarları
 const siteAyarSayisi = db.prepare('SELECT COUNT(*) as c FROM site_ayarlari').get();
 if (siteAyarSayisi.c === 0) {
   db.prepare('INSERT INTO site_ayarlari (id, min_bahis) VALUES (1, 150)').run();
 } else {
-  // min_bahis 150 default olarak güncelle eğer 10 ise (eski kayıt)
   const mevcut = db.prepare('SELECT min_bahis FROM site_ayarlari WHERE id = 1').get();
   if (mevcut && (mevcut.min_bahis === 10 || mevcut.min_bahis === null)) {
     db.prepare('UPDATE site_ayarlari SET min_bahis = 150 WHERE id = 1').run();
   }
 }
 
-// Varsayilan market itemlari
+// Grafik ayarları
+const grafAyar = db.prepare('SELECT COUNT(*) as c FROM grafik_ayarlari').get();
+if (grafAyar.c === 0) db.prepare('INSERT INTO grafik_ayarlari (id, tur_suresi) VALUES (1, 60)').run();
+
+// Para kopar
+const koparAyar = db.prepare('SELECT COUNT(*) as c FROM para_kopar_ayar').get();
+if (koparAyar.c === 0) db.prepare('INSERT INTO para_kopar_ayar (id) VALUES (1)').run();
+
+// Market itemları
 const itemSayisi = db.prepare('SELECT COUNT(*) as c FROM market_itemlari').get();
 if (itemSayisi.c === 0) {
   db.prepare(`INSERT INTO market_itemlari (kod, isim, aciklama, fiyat, para_birimi, kullanim_hakki) VALUES
@@ -166,47 +172,36 @@ if (itemSayisi.c === 0) {
   `).run();
 }
 
-// Varsayilan jeton paketleri
+// Jeton paketleri
 const paketSayisi = db.prepare('SELECT COUNT(*) as c FROM jeton_paketleri').get();
 if (paketSayisi.c === 0) {
   const paketler = [
     { isim: 'Starter', jeton: 1500, fiyat: 29.99, para_birimi: 'tl' },
-    { isim: 'Bronz', jeton: 5000, fiyat: 79.99, para_birimi: 'tl' },
-    { isim: 'Gumus', jeton: 7500, fiyat: 109.99, para_birimi: 'tl' },
-    { isim: 'Altin', jeton: 10000, fiyat: 139.99, para_birimi: 'tl' },
-    { isim: 'Elmas', jeton: 15000, fiyat: 199.99, para_birimi: 'tl' },
-    { isim: 'Efsane', jeton: 20000, fiyat: 249.99, para_birimi: 'tl' }
+    { isim: 'Bronz',   jeton: 5000, fiyat: 79.99, para_birimi: 'tl' },
+    { isim: 'Gumus',   jeton: 7500, fiyat: 109.99, para_birimi: 'tl' },
+    { isim: 'Altin',   jeton: 10000, fiyat: 139.99, para_birimi: 'tl' },
+    { isim: 'Elmas',   jeton: 15000, fiyat: 199.99, para_birimi: 'tl' },
+    { isim: 'Efsane',  jeton: 20000, fiyat: 249.99, para_birimi: 'tl' }
   ];
   const stmt = db.prepare('INSERT INTO jeton_paketleri (isim, jeton_miktari, fiyat, para_birimi) VALUES (?, ?, ?, ?)');
   paketler.forEach(p => stmt.run(p.isim, p.jeton, p.fiyat, p.para_birimi));
 }
 
-const grafAyar = db.prepare('SELECT COUNT(*) as c FROM grafik_ayarlari').get();
-if (grafAyar.c === 0) {
-  db.prepare('INSERT INTO grafik_ayarlari (id) VALUES (1)').run();
-}
-
-const koparAyar = db.prepare('SELECT COUNT(*) as c FROM para_kopar_ayar').get();
-if (koparAyar.c === 0) {
-  db.prepare('INSERT INTO para_kopar_ayar (id) VALUES (1)').run();
-}
-
-// 30 bot olustur
+// Botlar
 const botSayisi = db.prepare('SELECT COUNT(*) as c FROM botlar').get();
 if (botSayisi.c === 0) {
   const botIsimler = [
-    'Ahmet_T', 'MehmetX', 'AliVeli', 'Kemal55', 'Serkan7',
-    'Emre_K', 'Burak99', 'Onur_23', 'Murat_D', 'Hakan_R',
-    'Selim_Y', 'Tolga_B', 'Oguz_44', 'Erkan_5', 'Baran_X',
-    'Cem_Pro', 'Doruk_1', 'Kaan_77', 'Ege_Bot', 'Tuna_22',
-    'Sinan_K', 'Yusuf_G', 'Umut_88', 'Furkan3', 'Inan_55',
-    'Alper_J', 'Taylan2', 'Volkan9', 'Sertac6', 'Gokhan0'
+    'CryptoKing','MoonRider','BitHunter','SatoshiX','TradeMaster',
+    'CoinSniper','AlphaBot','LunaWolf','HashBull','TokenGhost',
+    'SilverPeak','GoldRush88','ByteStorm','NightTrader','QuickFlip',
+    'DiamondFist','IceBreaker','FireTrade','StealthX','OmegaTrade',
+    'PhantomBull','SwiftCoin','IronHand','VaultKing','ShadowFund',
+    'NeonTrader','CodeWolf','ZeroRisk','DarkHorse','StarGate99'
   ];
   const stmt = db.prepare('INSERT INTO botlar (nick, jeton, beceri) VALUES (?, ?, ?)');
-  botIsimler.forEach((nick, i) => {
-    // Beceri 10-60 arasi (cok iyi degil ama leaderda gorunsunler)
-    const beceri = 10 + Math.floor(Math.random() * 50);
-    const jeton = 300 + Math.floor(Math.random() * 700);
+  botIsimler.forEach(nick => {
+    const beceri = 15 + Math.floor(Math.random() * 45);
+    const jeton = 400 + Math.floor(Math.random() * 800);
     stmt.run(nick, jeton, beceri);
   });
 }
