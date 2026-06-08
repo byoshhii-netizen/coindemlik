@@ -127,14 +127,15 @@ app.post('/api/bahis', (req, res) => {
   const k = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id);
   if (!k || k.yasak) return res.status(401).json({ basari: false });
   const miktar = parseInt(req.body.jeton_miktari);
+  console.log('[BAHIS]', { kullanici: k?.nick, miktar, turBitis: grafik.turBitisAl(), simdi: Date.now() });
   if (!miktar || miktar < 1) return res.json({ basari: false, mesaj: 'Gecersiz miktar.' });
   const ayar = db.prepare('SELECT min_bahis FROM site_ayarlari WHERE id = 1').get();
   const minBahis = ayar ? (ayar.min_bahis || 150) : 150;
   if (miktar < minBahis) return res.json({ basari: false, mesaj: `Minimum bahis ${minBahis} jetondur.` });
   if (miktar > k.jeton) return res.json({ basari: false, mesaj: 'Yetersiz jeton.' });
-  // Tur bitmişse pozisyon kabul etme (turBitis null ise yeni tur başlıyor, kabul et)
+  // Tur bitmişse pozisyon kabul etme — 500ms tolerans ile
   const turBitisZamani = grafik.turBitisAl();
-  if (turBitisZamani && Date.now() >= turBitisZamani) {
+  if (turBitisZamani && Date.now() >= turBitisZamani + 500) {
     return res.json({ basari: false, mesaj: 'Yeni tur başlıyor, bekleyiniz.' });
   }
   const bahisGirdigiDeger = grafik.mevcutDegerAl();

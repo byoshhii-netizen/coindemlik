@@ -1,5 +1,6 @@
 // DemliCoin Oyun JS
-const socket = io();
+let socket;
+try { socket = io(); } catch(e) { console.error('Socket.IO baglanti hatasi:', e); socket = { on: ()=>{}, emit: ()=>{} }; }
 let kullanici = null;
 let grafikGecmis = [];
 let hedefGecmis = [];
@@ -89,8 +90,6 @@ async function init() {
   const dr = await fetch('/api/duyurular');
   const dd = await dr.json();
   if (dd.basari) dd.duyurular.forEach(d => duyuruGoster(d));
-
-  document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') mesajGonder(); });
 }
 
 // ─── POZİSYON PERSIST (localStorage) ───
@@ -112,7 +111,7 @@ function pozisyonYukle() {
       return;
     }
     aktifPozisyon = p;
-    document.getElementById('bas-btn').style.display = 'none';
+    document.getElementById('bass-btn').style.display = 'none';
     document.getElementById('sat-btn').style.display = 'block';
     document.getElementById('bahis-panel').classList.add('aktif-pozisyon');
     document.getElementById('giris-degeri').textContent = p.girdigiDeger.toFixed(2);
@@ -379,38 +378,44 @@ function anlikPLGuncelle(mevcutDeger) {
   el.className = 'anlik-pl ' + (kazanc >= 0 ? 'pl-pozitif' : 'pl-negatif');
 }
 
-// ─── POZİSYON (eskisi bahis) ───
-async function basBahistePara() {
+// ─── POZİSYON ───
+async function bassBasildi() {
   if (!kullanici) { window.location.href = '/kayit'; return; }
   if (aktifPozisyon) { bildirimGoster('Zaten aktif pozisyon var!', false); return; }
-  // turBitis null ise yeni tur bekleniyor, giriş serbest
-  if (turBitis && Date.now() >= turBitis) { bildirimGoster('Yeni tur başlıyor, bekle!', false); return; }
 
-  const miktar = parseInt(document.getElementById('bahis-miktar').value);
-  if (!miktar || miktar < 1) { bildirimGoster('Gecerli miktar girin!', false); return; }
-  if (miktar < minPozisyon) { bildirimGoster(`Minimum ${minPozisyon.toLocaleString('tr-TR')} jetondur!`, false); return; }
+  const inputEl = document.getElementById('bahis-miktar');
+  const miktar = parseInt(inputEl.value);
+  if (!miktar || isNaN(miktar) || miktar < 1) { inputEl.value = minPozisyon; bildirimGoster('Gecerli miktar girin!', false); return; }
+  if (miktar < minPozisyon) { bildirimGoster('Minimum ' + minPozisyon.toLocaleString('tr-TR') + ' jetondur!', false); return; }
   if (miktar > kullanici.jeton) { bildirimGoster('Yetersiz jeton!', false); return; }
+
+  const btn = document.getElementById('bass-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
   const r = await fetch('/api/bahis', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jeton_miktari: miktar, yon: 'yukari' })
   });
   const d = await r.json();
-  if (!d.basari) { bildirimGoster(d.mesaj, false); return; }
 
-  const celikKart = kullanici.celik_kart ? true : false;
-  aktifPozisyon = { id: d.bahisId, miktar, girdigiDeger: d.girdigiDeger, celikKart };
+  if (!d.basari) {
+    bildirimGoster(d.mesaj, false);
+    if (btn) { btn.disabled = false; btn.textContent = 'BASS'; }
+    return;
+  }
+
+  aktifPozisyon = { id: d.bahisId, miktar: miktar, girdigiDeger: d.girdigiDeger, celikKart: kullanici.celik_kart ? true : false };
   pozisyonKaydet();
   kullanici.jeton -= miktar;
   guncelleBilgi();
 
-  document.getElementById('bas-btn').style.display = 'none';
+  if (btn) btn.style.display = 'none';
   document.getElementById('sat-btn').style.display = 'block';
   document.getElementById('bahis-panel').classList.add('aktif-pozisyon');
   document.getElementById('giris-degeri').textContent = d.girdigiDeger.toFixed(2);
   document.getElementById('aktif-bilgi-wrap').style.display = 'flex';
   document.querySelectorAll('.item-chip').forEach(c => c.classList.add('item-parlak'));
-  bildirimGoster(`Pozisyon açıldı — ${miktar.toLocaleString('tr-TR')} jeton @ ${d.girdigiDeger.toFixed(2)}`, true);
+  bildirimGoster('Pozisyon açıldı — ' + miktar.toLocaleString('tr-TR') + ' jeton @ ' + d.girdigiDeger.toFixed(2), true);
 }
 
 async function satisYap() {
@@ -452,7 +457,8 @@ async function zorunluSat() {
 function resetPozisyon() {
   aktifPozisyon = null;
   pozisyonTemizle();
-  document.getElementById('bas-btn').style.display = 'block';
+  const bassBtn = document.getElementById('bass-btn');
+  if (bassBtn) { bassBtn.style.display = 'block'; bassBtn.disabled = false; bassBtn.textContent = 'BASS'; }
   document.getElementById('sat-btn').style.display = 'none';
   document.getElementById('bahis-panel').classList.remove('aktif-pozisyon');
   document.getElementById('aktif-bilgi-wrap').style.display = 'none';
@@ -460,7 +466,6 @@ function resetPozisyon() {
   const pl = document.getElementById('anlik-pl');
   if (pl) pl.textContent = '';
 }
-
 function sonucGoster(kazanc, zorunlu) {
   const overlay = document.getElementById('sonuc-overlay');
   const rakam = document.getElementById('sonuc-rakam');
@@ -627,5 +632,44 @@ function bildirimGoster(mesaj, basari) {
 
 function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 async function cikisYap() { await fetch('/api/cikis',{method:'POST'}); window.location.href='/giris'; }
+
+// ─── EVENT LISTENER'LAR ───
+function eventleriBasla() {
+  const satBtn = document.getElementById('sat-btn');
+  const chatBtn = document.getElementById('chat-gonder-btn');
+  const chatInput = document.getElementById('chat-input');
+
+  if (satBtn) satBtn.addEventListener('click', satisYap);
+  if (chatBtn) chatBtn.addEventListener('click', mesajGonder);
+  if (chatInput) chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') mesajGonder(); });
+
+  const bahisMiktar = document.getElementById('bahis-miktar');
+  if (bahisMiktar) bahisMiktar.addEventListener('keydown', e => { if (e.key === 'Enter') bassBasildi(); });
+
+  document.querySelectorAll('.hizli-btn').forEach(btn => {
+    btn.addEventListener('click', () => hizliMiktar(parseInt(btn.dataset.miktar)));
+  });
+
+  const cikisBtn = document.querySelector('.btn-ghost-kirmizi');
+  if (cikisBtn) cikisBtn.addEventListener('click', cikisYap);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', eventleriBasla);
+} else {
+  eventleriBasla();
+}
+
+// Space ile bahse gir / sat
+document.addEventListener('keydown', function(e) {
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    if (aktifPozisyon) {
+      satisYap();
+    } else {
+      bassBasildi();
+    }
+  }
+});
 
 init();

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -103,18 +104,17 @@
                 <span class="min-bahis-chip" id="min-bahis-goster">Min: 150</span>
               </div>
               <div class="miktar-input-wrap">
-                <input type="number" id="bahis-miktar" value="150" min="1" class="miktar-input" />
+                <input type="number" id="bahis-miktar" value="150" min="1" class="miktar-input" inputmode="numeric" />
                 <div class="hizli-miktarlar">
-                  <button onclick="hizliMiktar(150)">150</button>
-                  <button onclick="hizliMiktar(250)">250</button>
-                  <button onclick="hizliMiktar(500)">500</button>
-                  <button onclick="hizliMiktar(1000)">1000</button>
+                  <button class="hizli-btn" data-miktar="150">150</button>
+                  <button class="hizli-btn" data-miktar="250">250</button>
+                  <button class="hizli-btn" data-miktar="500">500</button>
+                  <button class="hizli-btn" data-miktar="1000">1000</button>
                 </div>
               </div>
             </div>
             <div class="bahis-buton-grup">
-              <button id="bas-btn" class="bas-btn" onclick="basBahistePara()">GİR</button>
-              <button id="sat-btn" class="sat-btn" onclick="satisYap()" style="display:none;">ÇIKIŞ</button>
+              <div id="sat-btn" class="sat-btn" style="display:none;"></div>
             </div>
           </div>
           <div id="aktif-bilgi-wrap" class="aktif-bilgi-wrap" style="display:none;">
@@ -144,7 +144,7 @@
           <div id="chat-mesajlar" class="chat-mesajlar"></div>
           <div class="chat-form">
             <input id="chat-input" class="chat-input" type="text" placeholder="Mesaj yaz..." maxlength="200" />
-            <button onclick="mesajGonder()" class="chat-gonder-btn">GONDER</button>
+            <button id="chat-gonder-btn" class="chat-gonder-btn">GONDER</button>
           </div>
         </div>
 
@@ -162,6 +162,6 @@
       }).catch(() => {});
     });
   </script>
-  <script src="/oyun.js"></script>
+  <script src="/oyun.js?v=10"></script>
 </body>
 </html>
