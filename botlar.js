@@ -153,6 +153,14 @@ class BotMotoru {
     if (!this.io) return;
     const mesaj = rastgeleMesaj(mesajKategorisi);
     const renk = botRenk(bot.nick);
+    // Gerçek sırayı hesapla (botun jetonu kaç kişinin jetonundan fazla)
+    let sira = 999;
+    try {
+      const gercekOyuncuSayisi = db.prepare('SELECT COUNT(*) as c FROM kullanicilar WHERE yasak = 0').get().c;
+      const ustundekiler = db.prepare('SELECT COUNT(*) as c FROM kullanicilar WHERE jeton > ? AND yasak = 0').get(bot.jeton).c;
+      const botUstundekiler = db.prepare('SELECT COUNT(*) as c FROM botlar WHERE jeton > ? AND aktif = 1').get(bot.jeton).c;
+      sira = ustundekiler + botUstundekiler + 1;
+    } catch(e) {}
     // DB'ye kaydet
     try {
       db.prepare('INSERT INTO chat_mesajlari (kullanici_id, nick, mesaj) VALUES (NULL, ?, ?)').run(bot.nick, mesaj);
@@ -164,7 +172,7 @@ class BotMotoru {
         tarih: new Date().toISOString(),
         jeton: bot.jeton,
         renk,
-        sira: 999,
+        sira,
         celik_kart: 0
       });
     } catch(e) {}

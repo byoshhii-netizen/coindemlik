@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/logo.png" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DemliCoin — Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -12,7 +12,7 @@
   <div class="admin-wrap">
     <aside class="admin-sidebar">
       <div class="admin-logo">
-        <img src="/logo.png" style="height:26px;border-radius:4px;" alt="" />
+        <img src="/logo.png" style="height:32px;border-radius:6px;" alt="logo" />
         <span style="font-size:14px;font-weight:800;">DemliCoin</span>
         <span class="admin-badge">ADM</span>
       </div>
@@ -57,19 +57,38 @@
           </div>
           <canvas id="adm-grafik-canvas" style="width:100%;display:block;border-radius:8px;background:var(--bg-deep);"></canvas>
 
-          <!-- BASILI TUT BUTONLARI -->
+          <!-- BASILI TUT + SÜRE MOD BUTONLARI -->
           <div style="display:flex;gap:12px;margin-top:16px;">
             <button id="adm-yukari-btn" class="admin-btn-yukari"
               onmousedown="grafikYonBasla('yukari')" onmouseup="grafikYonBirak()" onmouseleave="grafikYonBirak()"
               ontouchstart="grafikYonBasla('yukari')" ontouchend="grafikYonBirak()">
-              ▲ YUKARI BAK (BASILI TUT)
+              ▲ YUKARI (BASILI TUT)
             </button>
             <button id="adm-asagi-btn" class="admin-btn-asagi"
               onmousedown="grafikYonBasla('asagi')" onmouseup="grafikYonBirak()" onmouseleave="grafikYonBirak()"
               ontouchstart="grafikYonBasla('asagi')" ontouchend="grafikYonBirak()">
-              ▼ ASAGI BAK (BASILI TUT)
+              ▼ ASAGI (BASILI TUT)
             </button>
           </div>
+
+          <!-- SÜRE İLE ZORLA YÖN -->
+          <div style="margin-top:14px;background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--t3);margin-bottom:10px;">SÜRE İLE YÖN ZORLA</div>
+            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+              <div class="fg" style="margin:0;flex:1;min-width:100px;">
+                <label style="font-size:11px;">Süre (saniye, 0=anlık)</label>
+                <input id="g-sure-mod-sure" type="number" value="0" min="0" max="300" style="height:36px;font-size:14px;" />
+              </div>
+              <div class="fg" style="margin:0;flex:1;min-width:80px;">
+                <label style="font-size:11px;">Adım Büyüklüğü</label>
+                <input id="g-sure-mod-adim" type="number" value="50" min="1" style="height:36px;font-size:14px;" />
+              </div>
+              <button class="admin-btn-yukari" style="height:36px;font-size:13px;padding:0 14px;flex-shrink:0;" onclick="grafikSureMod('yukari')">▲ Uygula</button>
+              <button class="admin-btn-asagi" style="height:36px;font-size:13px;padding:0 14px;flex-shrink:0;" onclick="grafikSureMod('asagi')">▼ Uygula</button>
+            </div>
+            <div id="grafik-sure-mod-msg" style="margin-top:8px;font-size:11px;color:var(--t3);min-height:16px;"></div>
+          </div>
+
           <div id="grafik-yon-msg" style="margin-top:8px;font-size:12px;color:var(--t3);min-height:18px;"></div>
         </div>
 

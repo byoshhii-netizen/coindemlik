@@ -176,6 +176,66 @@ function grafikYonBirak() {
   if (aBtn) aBtn.classList.remove('btn-aktif-asagi');
 }
 
+// Süre ile yön zorla
+async function grafikSureMod(yon) {
+  const sureSn = parseInt(document.getElementById('g-sure-mod-sure').value) || 0;
+  const adim = parseFloat(document.getElementById('g-sure-mod-adim').value) || 50;
+  const msgEl = document.getElementById('grafik-sure-mod-msg');
+
+  const mevcutDeger = parseFloat(document.getElementById('adm-canli-deger').textContent) || 200;
+  const ayarlar = {
+    guncelleme_suresi: parseInt(document.getElementById('g-sure').value) || 3000,
+    min_deger: parseFloat(document.getElementById('g-min').value) || 50,
+    max_deger: parseFloat(document.getElementById('g-max').value) || 500,
+    artma_orani: parseFloat(document.getElementById('g-artma').value) || 0.55,
+    max_degisim: parseInt(document.getElementById('g-degisim').value) || 40,
+    tur_suresi: parseInt(document.getElementById('g-tur-suresi').value) || 60,
+  };
+
+  const hedef = yon === 'yukari'
+    ? Math.min(mevcutDeger + adim, ayarlar.max_deger)
+    : Math.max(mevcutDeger - adim, ayarlar.min_deger);
+
+  if (sureSn === 0) {
+    // Anlık: bir kez uygula
+    await fetch('/api/admin/grafik-ayar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...ayarlar, siradaki_deger: hedef })
+    });
+    if (msgEl) msgEl.textContent = `✓ ${yon === 'yukari' ? '▲' : '▼'} Anlık uygulandı → ${hedef.toFixed(0)}`;
+    setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
+  } else {
+    // Süre boyunca tekrarla
+    if (msgEl) msgEl.textContent = `⏱ ${sureSn}sn boyunca ${yon === 'yukari' ? '▲ yükseliyor' : '▼ düşüyor'}...`;
+    const bitis = Date.now() + sureSn * 1000;
+
+    const tekrarla = async () => {
+      if (Date.now() >= bitis) {
+        if (msgEl) msgEl.textContent = `✓ ${sureSn}sn tamamlandı.`;
+        setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
+        return;
+      }
+      const mevcutStr = document.getElementById('adm-canli-deger').textContent;
+      const mevcut = parseFloat(mevcutStr) || 200;
+      const h = yon === 'yukari'
+        ? Math.min(mevcut + adim, ayarlar.max_deger)
+        : Math.max(mevcut - adim, ayarlar.min_deger);
+      try {
+        await fetch('/api/admin/grafik-ayar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...ayarlar, siradaki_deger: h })
+        });
+      } catch(e) {}
+      const kalanSn = Math.max(0, Math.ceil((bitis - Date.now()) / 1000));
+      if (msgEl) msgEl.textContent = `⏱ ${kalanSn}sn kaldı (${yon === 'yukari' ? '▲' : '▼'} ${h.toFixed(0)})`;
+      setTimeout(tekrarla, (ayarlar.guncelleme_suresi || 3000) + 200);
+    };
+    tekrarla();
+  }
+}
+
 async function yukleGrafikAyar() {
   const r = await fetch('/api/admin/grafik-ayar-yukle');
   if (!r.ok) return;

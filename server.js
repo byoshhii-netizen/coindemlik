@@ -705,8 +705,13 @@ function yayinlaOyuncular() {
       if (k) oyuncular.push({ ...k, bot: false });
     }
   });
+  // Botlar — rastgele ±küçük dalgalanma ile canlı görünsün
   const botlar = db.prepare('SELECT id, nick, jeton FROM botlar WHERE aktif = 1 ORDER BY RANDOM() LIMIT 12').all();
-  botlar.forEach(b => oyuncular.push({ id: `bot_${b.id}`, nick: b.nick, jeton: b.jeton, renk: nickRenkAl(b.nick), bot: true, celik_kart: 0 }));
+  botlar.forEach(b => {
+    const dalgalanma = Math.floor((Math.random() - 0.5) * 60); // ±30 jeton
+    const gosterimJeton = Math.max(100, b.jeton + dalgalanma);
+    oyuncular.push({ id: `bot_${b.id}`, nick: b.nick, jeton: gosterimJeton, renk: nickRenkAl(b.nick), bot: true, celik_kart: 0 });
+  });
   io.emit('oyuncu_listesi', oyuncular);
 }
 

@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/logo.png" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DemliCoin — Market</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,14 +14,14 @@
   <header class="ust-bar">
     <div class="logo-alan">
       <a href="/" class="logo-link">
-        <div class="logo-mark">DC</div>
+        <img src="/logo.png" class="logo-img" alt="logo" style="height:32px;border-radius:4px;" />
         <span class="logo-text">DemliCoin</span>
       </a>
     </div>
     <div class="kullanici-bilgi">
       <span class="nick-pill" id="hosgeldin-nick"></span>
       <div class="jeton-pill">
-        <span class="jeton-label">JETON</span>
+        <img src="/coin.svg" class="coin-img" alt="jeton" />
         <span class="jeton-sayi" id="jeton-miktar">0</span>
       </div>
       <div class="nav-sep"></div>
@@ -125,7 +125,10 @@
         grid.innerHTML += `
           <div class="paket-kart" style="--accent:${renk}">
             <div class="paket-etiket">${etiketler[i] || 'PAKET'}</div>
-            <div class="paket-jeton mono">${p.jeton_miktari.toLocaleString('tr-TR')}</div>
+            <div class="paket-jeton mono" style="display:flex;align-items:center;gap:6px;justify-content:center;">
+              <img src="/coin.svg" style="width:22px;height:22px;" alt="jeton" />
+              ${p.jeton_miktari.toLocaleString('tr-TR')}
+            </div>
             <div class="paket-jeton-label">JETON</div>
             <div class="paket-fiyat mono">${fiyatStr}</div>
             <button class="paket-btn" onclick="paketAl(${p.id})">SATIN AL</button>
@@ -141,10 +144,7 @@
     }
 
     async function paketAl(id) {
-      const r = await fetch('/api/market/jeton-satin-al', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({paket_id:id}) });
-      const d = await r.json();
-      toast(d.mesaj, d.basari);
-      if (d.basari) { kullanici.jeton = d.yeniJeton; document.getElementById('jeton-miktar').textContent = d.yeniJeton.toLocaleString('tr-TR'); }
+      toast('Satın alma özelliği şu an aktif değil.', false);
     }
 
     function sekmeAc(s, btn) {
