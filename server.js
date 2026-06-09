@@ -50,7 +50,7 @@ app.use(session({
 
 const grafik = new GrafikMotoru(io);
 grafik.baslat();
-const botMotoru = new BotMotoru(grafik);
+const botMotoru = new BotMotoru(grafik, io);
 botMotoru.baslat();
 
 // Chat otomatik temizleme — 20 dk'da bir
@@ -366,6 +366,11 @@ app.post('/api/admin/grafik-ayar', adminGerektir, (req, res) => {
   db.prepare(`UPDATE grafik_ayarlari SET guncelleme_suresi=?,min_deger=?,max_deger=?,artma_orani=?,max_degisim=?,siradaki_deger=?,siradaki_sure=?,tur_suresi=? WHERE id=1`)
     .run(guncelleme_suresi||3000, min_deger||50, max_deger||500, artma_orani||0.55, max_degisim||40, siradaki_deger||null, siradaki_sure||null, tur_suresi||60);
   res.json({ basari: true, mesaj: 'Grafik ayarlari guncellendi.' });
+});
+
+app.get('/api/admin/grafik-ayar-yukle', adminGerektir, (req, res) => {
+  const ayar = db.prepare('SELECT * FROM grafik_ayarlari WHERE id = 1').get();
+  res.json({ basari: true, ayar: ayar || {} });
 });
 
 app.get('/api/admin/oyuncular', adminGerektir, (req, res) => {

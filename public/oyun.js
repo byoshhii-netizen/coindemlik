@@ -1,10 +1,11 @@
 // DemliCoin Oyun JS
 let socket;
-try { socket = io(); } catch(e) { console.error('Socket.IO baglanti hatasi:', e); socket = { on: ()=>{}, emit: ()=>{} }; }
+try { socket = io(); } catch(e) { socket = { on: ()=>{}, emit: ()=>{} }; }
+
 let kullanici = null;
 let grafikGecmis = [];
 let hedefGecmis = [];
-let aktifPozisyon = null; // bahis -> pozisyon
+let aktifPozisyon = null;
 let canvas, ctx;
 let coinIsmi = 'DemliCoin';
 let coinKisaltma = 'DC';
@@ -16,7 +17,7 @@ let eskiGecmis = [];
 let turBitis = null;
 let turInterval = null;
 
-// ─── TOAST (SAĞ ALT BİLDİRİM) ───
+// ─── SAĞ ALT BİLDİRİM ───
 function sagAltBildirim(mesaj, tip, sure) {
   sure = sure || 3500;
   const kap = document.getElementById('sag-alt-bildirimler');
@@ -40,24 +41,25 @@ async function init() {
       document.title = coinIsmi;
       const lt = document.getElementById('logo-text'); if (lt) lt.textContent = coinIsmi;
       const gs = document.getElementById('grafik-sembol'); if (gs) gs.textContent = `${coinKisaltma} / JETON`;
-      const minEl = document.getElementById('min-bahis-goster'); if (minEl) minEl.textContent = `Min: ${minPozisyon}`;
+      const mn = document.getElementById('min-bahis-goster'); if (mn) mn.textContent = `Min: ${minPozisyon}`;
       const bi = document.getElementById('bahis-miktar'); if (bi) { bi.min = minPozisyon; bi.value = minPozisyon; }
     }
   } catch(e) {}
 
-  const r = await fetch('/api/benim-bilgilerim');
-  if (r.ok) {
-    const d = await r.json();
-    if (d.basari) {
-      kullanici = d.kullanici;
-      guncelleBilgi();
-      itemBarGuncelle(d.itemler);
-      document.getElementById('giris-uyari').style.display = 'none';
-      document.getElementById('bahis-panel').style.display = 'block';
-      // Aktif pozisyonu localStorage'dan yükle
-      pozisyonYukle();
+  try {
+    const r = await fetch('/api/benim-bilgilerim');
+    if (r.ok) {
+      const d = await r.json();
+      if (d.basari) {
+        kullanici = d.kullanici;
+        guncelleBilgi();
+        itemBarGuncelle(d.itemler);
+        document.getElementById('giris-uyari').style.display = 'none';
+        document.getElementById('bahis-panel').style.display = 'block';
+        pozisyonYukle();
+      }
     }
-  }
+  } catch(e) {}
 
   if (!kullanici) {
     const kb = document.getElementById('kullanici-bilgi-alan');
@@ -71,28 +73,36 @@ async function init() {
   boyutlandirCanvas();
   window.addEventListener('resize', boyutlandirCanvas);
 
-  const gr = await fetch('/api/grafik-durumu');
-  const gd = await gr.json();
-  grafikGecmis = gd.gecmis || [];
-  hedefGecmis = grafikGecmis.slice();
-  mevcutDegerGuncelle(gd.mevcutDeger);
-  if (gd.turBitis) { turBitis = gd.turBitis; turSayacBaslat(); }
-  grafikCiz();
+  try {
+    const gr = await fetch('/api/grafik-durumu');
+    const gd = await gr.json();
+    grafikGecmis = gd.gecmis || [];
+    hedefGecmis = grafikGecmis.slice();
+    mevcutDegerGuncelle(gd.mevcutDeger);
+    if (gd.turBitis) { turBitis = gd.turBitis; turSayacBaslat(); }
+    grafikCiz();
+  } catch(e) {}
 
   if (kullanici) {
     socket.emit('auth', { kullanici_id: kullanici.id });
-    const cr = await fetch('/api/chat/gecmis');
-    const cd = await cr.json();
-    if (cd.basari) { cd.mesajlar.forEach(m => chatEkle(m.id, m.nick, m.mesaj, m.tarih, m.jeton, m.renk, m.sira, m.celik_kart)); chatKaydirAsagi(); }
+    try {
+      const cr = await fetch('/api/chat/gecmis');
+      const cd = await cr.json();
+      if (cd.basari) {
+        cd.mesajlar.forEach(m => chatEkle(m.id, m.nick, m.mesaj, m.tarih, m.jeton, m.renk, m.sira, m.celik_kart));
+        chatKaydirAsagi();
+      }
+    } catch(e) {}
   }
 
-  // Duyurular
-  const dr = await fetch('/api/duyurular');
-  const dd = await dr.json();
-  if (dd.basari) dd.duyurular.forEach(d => duyuruGoster(d));
+  try {
+    const dr = await fetch('/api/duyurular');
+    const dd = await dr.json();
+    if (dd.basari) dd.duyurular.forEach(d => duyuruGoster(d));
+  } catch(e) {}
 }
 
-// ─── POZİSYON PERSIST (localStorage) ───
+// ─── POZİSYON PERSIST ───
 function pozisyonKaydet() {
   if (!kullanici || !aktifPozisyon) return;
   localStorage.setItem(`pozisyon_${kullanici.id}`, JSON.stringify(aktifPozisyon));
@@ -105,17 +115,21 @@ function pozisyonYukle() {
   try {
     const p = JSON.parse(kayitli);
     if (!p || !p.id || !p.girdigiDeger) return;
-    // Tur bitip bitmediğini kontrol et
     if (turBitis && Date.now() >= turBitis) {
       localStorage.removeItem(`pozisyon_${kullanici.id}`);
       return;
     }
     aktifPozisyon = p;
-    document.getElementById('bass-btn').style.display = 'none';
-    document.getElementById('sat-btn').style.display = 'block';
-    document.getElementById('bahis-panel').classList.add('aktif-pozisyon');
-    document.getElementById('giris-degeri').textContent = p.girdigiDeger.toFixed(2);
-    document.getElementById('aktif-bilgi-wrap').style.display = 'flex';
+    const bassBtn = document.getElementById('bass-btn');
+    const satBtn = document.getElementById('sat-btn');
+    if (bassBtn) bassBtn.style.display = 'none';
+    if (satBtn) satBtn.style.display = 'block';
+    const panel = document.getElementById('bahis-panel');
+    if (panel) panel.classList.add('aktif-pozisyon');
+    const gd = document.getElementById('giris-degeri');
+    if (gd) gd.textContent = p.girdigiDeger.toFixed(2);
+    const aw = document.getElementById('aktif-bilgi-wrap');
+    if (aw) aw.style.display = 'flex';
     document.querySelectorAll('.item-chip').forEach(c => c.classList.add('item-parlak'));
   } catch(e) {
     localStorage.removeItem(`pozisyon_${kullanici.id}`);
@@ -128,8 +142,10 @@ function pozisyonTemizle() {
 
 function guncelleBilgi() {
   if (!kullanici) return;
-  document.getElementById('hosgeldin-nick').textContent = kullanici.nick;
-  document.getElementById('jeton-miktar').textContent = kullanici.jeton.toLocaleString('tr-TR');
+  const nick = document.getElementById('hosgeldin-nick');
+  const jeton = document.getElementById('jeton-miktar');
+  if (nick) nick.textContent = kullanici.nick;
+  if (jeton) jeton.textContent = kullanici.jeton.toLocaleString('tr-TR');
 }
 
 function boyutlandirCanvas() {
@@ -148,14 +164,10 @@ function turSayacBaslat() {
     const el = document.getElementById('tur-sayac');
     const ring = document.getElementById('tur-ring');
     if (!el) return;
-
-    const ayarSuresi = 60;
     el.textContent = kalan > 0 ? `${kalan}s` : '—';
-
     if (kalan <= 10) { el.style.color = '#ef4444'; if (ring) ring.style.borderColor = '#ef4444'; }
     else if (kalan <= 20) { el.style.color = '#f0b429'; if (ring) ring.style.borderColor = '#f0b429'; }
     else { el.style.color = '#10b981'; if (ring) ring.style.borderColor = '#10b981'; }
-
     if (kalan === 0) clearInterval(turInterval);
   }, 250);
 }
@@ -179,7 +191,7 @@ socket.on('tur_basladi', (data) => {
 });
 
 socket.on('tur_bitti', () => {
-  turBitis = null; // Yeni tur başlayana kadar engelleme yok
+  turBitis = null;
   turBildirim('TUR BİTTİ', false);
   sagAltBildirim('Tur sona erdi.', 'uyari', 4000);
   if (aktifPozisyon) zorunluSat();
@@ -205,7 +217,8 @@ socket.on('chat_temizlendi', () => {
 socket.on('jeton_guncelle', (data) => {
   if (kullanici && data.kullanici_id === kullanici.id) {
     kullanici.jeton = data.jeton;
-    document.getElementById('jeton-miktar').textContent = data.jeton.toLocaleString('tr-TR');
+    const el = document.getElementById('jeton-miktar');
+    if (el) el.textContent = data.jeton.toLocaleString('tr-TR');
   }
 });
 
@@ -217,7 +230,6 @@ socket.on('duyuru_silindi', (data) => {
   if (el) el.remove();
 });
 
-// Çelik kart broadcast
 socket.on('celik_kart_alindi', (data) => {
   sagAltBildirim(`💎 ${data.nick} Çelik Kart aldı!`, 'celik', 6000);
   const chatDiv = document.getElementById('chat-mesajlar');
@@ -242,7 +254,7 @@ socket.on('celik_kart_kazandi', (data) => {
   }
 });
 
-// ─── TUR BİTTİ BİLDİRİM ───
+// ─── TUR BİLDİRİM ───
 function turBildirim(mesaj, basladi) {
   const el = document.getElementById('tur-bildirim');
   if (!el) return;
@@ -257,27 +269,22 @@ function animAdim(timestamp) {
   if (!animBaslangic) animBaslangic = timestamp;
   const t = Math.min((timestamp - animBaslangic) / ANIM_SURE, 1);
   const ease = 1 - Math.pow(1 - t, 3);
-
   if (eskiGecmis.length === 0 || hedefGecmis.length === 0) { grafikGecmis = hedefGecmis; grafikCiz(); return; }
-
   const gecmis = hedefGecmis.slice(0, -1);
   const sonH = hedefGecmis[hedefGecmis.length - 1];
   const sonE = eskiGecmis[eskiGecmis.length - 1] || sonH;
   grafikGecmis = [...gecmis, { deger: sonE.deger + (sonH.deger - sonE.deger) * ease, zaman: sonH.zaman }];
   grafikCiz();
-
   if (t < 1) animFrame = requestAnimationFrame(animAdim);
   else { grafikGecmis = hedefGecmis; grafikCiz(); }
 }
 
-// Çay kırmızısı: #c0392b benzeri, zengin koyu kırmızı
 const CAY_KIRMIZISI = '180,40,40';
 
 function grafikCiz() {
   if (!canvas || !ctx || grafikGecmis.length < 2) return;
   const w = canvas.width, h = canvas.height;
   ctx.clearRect(0, 0, w, h);
-
   const degerler = grafikGecmis.map(g => g.deger);
   const minD = Math.min(...degerler) * 0.93;
   const maxD = Math.max(...degerler) * 1.07;
@@ -285,7 +292,6 @@ function grafikCiz() {
   const padL = 52, padR = 10, padT = 14, padB = 28;
   const gW = w - padL - padR, gH = h - padT - padB;
 
-  // Grid
   ctx.strokeStyle = 'rgba(255,255,255,0.05)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
@@ -297,9 +303,7 @@ function grafikCiz() {
     ctx.fillText((maxD - (aralik / 4) * i).toFixed(0), padL - 6, y + 4);
   }
 
-  // Hat her zaman çay kırmızısı
   const rgb = CAY_KIRMIZISI;
-
   const grad = ctx.createLinearGradient(0, padT, 0, padT + gH);
   grad.addColorStop(0, `rgba(${rgb},0.22)`);
   grad.addColorStop(1, `rgba(${rgb},0.01)`);
@@ -323,14 +327,12 @@ function grafikCiz() {
   });
   ctx.stroke();
 
-  // Son nokta
   const lastX = padL + gW;
   const lastY = padT + gH - ((sonD - minD) / aralik) * gH;
   ctx.beginPath(); ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
   ctx.fillStyle = `rgb(${rgb})`; ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke();
 
-  // Fiyat etiketi
   ctx.fillStyle = `rgba(${rgb},0.9)`;
   ctx.fillRect(lastX + 6, lastY - 10, 52, 20);
   ctx.fillStyle = '#fff';
@@ -338,7 +340,6 @@ function grafikCiz() {
   ctx.textAlign = 'left';
   ctx.fillText(sonD.toFixed(1), lastX + 10, lastY + 4);
 
-  // Aktif pozisyon giriş çizgisi
   if (aktifPozisyon && aktifPozisyon.girdigiDeger) {
     const girisY = padT + gH - ((aktifPozisyon.girdigiDeger - minD) / aralik) * gH;
     if (girisY >= padT && girisY <= padT + gH) {
@@ -357,12 +358,10 @@ function grafikCiz() {
 
 function mevcutDegerGuncelle(deger) {
   const el = document.getElementById('grafik-deger');
-  const eski = parseFloat(el.dataset.deger || deger);
+  if (!el) return;
   el.dataset.deger = deger;
   el.textContent = deger.toFixed(2);
-  // Renk her zaman çay kırmızısı (değer yönü için hafif ton)
   el.className = 'canli-deger mono deger-cay';
-
   if (aktifPozisyon) anlikPLGuncelle(deger);
 }
 
@@ -378,94 +377,127 @@ function anlikPLGuncelle(mevcutDeger) {
   el.className = 'anlik-pl ' + (kazanc >= 0 ? 'pl-pozitif' : 'pl-negatif');
 }
 
-// ─── POZİSYON ───
+// ─── BAHİS: GİR ───
 async function bassBasildi() {
   if (!kullanici) { window.location.href = '/kayit'; return; }
   if (aktifPozisyon) { bildirimGoster('Zaten aktif pozisyon var!', false); return; }
 
   const inputEl = document.getElementById('bahis-miktar');
-  const miktar = parseInt(inputEl.value);
-  if (!miktar || isNaN(miktar) || miktar < 1) { inputEl.value = minPozisyon; bildirimGoster('Gecerli miktar girin!', false); return; }
+  const miktar = parseInt(inputEl ? inputEl.value : 0);
+  if (!miktar || isNaN(miktar) || miktar < 1) {
+    if (inputEl) inputEl.value = minPozisyon;
+    bildirimGoster('Geçerli miktar girin!', false);
+    return;
+  }
   if (miktar < minPozisyon) { bildirimGoster('Minimum ' + minPozisyon.toLocaleString('tr-TR') + ' jetondur!', false); return; }
   if (miktar > kullanici.jeton) { bildirimGoster('Yetersiz jeton!', false); return; }
 
   const btn = document.getElementById('bass-btn');
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
-  const r = await fetch('/api/bahis', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jeton_miktari: miktar, yon: 'yukari' })
-  });
-  const d = await r.json();
+  try {
+    const r = await fetch('/api/bahis', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jeton_miktari: miktar, yon: 'yukari' })
+    });
+    const d = await r.json();
 
-  if (!d.basari) {
-    bildirimGoster(d.mesaj, false);
-    if (btn) { btn.disabled = false; btn.textContent = 'BASS'; }
-    return;
+    if (!d.basari) {
+      bildirimGoster(d.mesaj, false);
+      if (btn) { btn.disabled = false; btn.textContent = 'GİR'; }
+      return;
+    }
+
+    aktifPozisyon = { id: d.bahisId, miktar, girdigiDeger: d.girdigiDeger, celikKart: kullanici.celik_kart ? true : false };
+    pozisyonKaydet();
+    kullanici.jeton -= miktar;
+    guncelleBilgi();
+
+    if (btn) btn.style.display = 'none';
+    const satBtn = document.getElementById('sat-btn');
+    if (satBtn) satBtn.style.display = 'block';
+    const panel = document.getElementById('bahis-panel');
+    if (panel) panel.classList.add('aktif-pozisyon');
+    const gd = document.getElementById('giris-degeri');
+    if (gd) gd.textContent = d.girdigiDeger.toFixed(2);
+    const aw = document.getElementById('aktif-bilgi-wrap');
+    if (aw) aw.style.display = 'flex';
+    document.querySelectorAll('.item-chip').forEach(c => c.classList.add('item-parlak'));
+    bildirimGoster('Pozisyon açıldı — ' + miktar.toLocaleString('tr-TR') + ' jeton @ ' + d.girdigiDeger.toFixed(2), true);
+  } catch(e) {
+    bildirimGoster('Bağlantı hatası!', false);
+    if (btn) { btn.disabled = false; btn.textContent = 'GİR'; }
   }
-
-  aktifPozisyon = { id: d.bahisId, miktar: miktar, girdigiDeger: d.girdigiDeger, celikKart: kullanici.celik_kart ? true : false };
-  pozisyonKaydet();
-  kullanici.jeton -= miktar;
-  guncelleBilgi();
-
-  if (btn) btn.style.display = 'none';
-  document.getElementById('sat-btn').style.display = 'block';
-  document.getElementById('bahis-panel').classList.add('aktif-pozisyon');
-  document.getElementById('giris-degeri').textContent = d.girdigiDeger.toFixed(2);
-  document.getElementById('aktif-bilgi-wrap').style.display = 'flex';
-  document.querySelectorAll('.item-chip').forEach(c => c.classList.add('item-parlak'));
-  bildirimGoster('Pozisyon açıldı — ' + miktar.toLocaleString('tr-TR') + ' jeton @ ' + d.girdigiDeger.toFixed(2), true);
 }
 
+// ─── BAHİS: SAT ───
 async function satisYap() {
   if (!aktifPozisyon) return;
-  const r = await fetch('/api/sat', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bahis_id: aktifPozisyon.id })
-  });
-  const d = await r.json();
-  if (!d.basari) { bildirimGoster(d.mesaj, false); return; }
-  kullanici.jeton = d.yeniJeton;
-  guncelleBilgi();
-  sonucGoster(d.kazanc);
-  // Sağ alt bildirim
-  if (d.kazanc > 0) sagAltBildirim(`+${d.kazanc.toLocaleString('tr-TR')} jeton kazandın!`, 'basari');
-  else if (d.kazanc < 0) sagAltBildirim(`${d.kazanc.toLocaleString('tr-TR')} jeton kaybettin.`, 'hata');
-  resetPozisyon();
-  const info = await fetch('/api/benim-bilgilerim');
-  const iData = await info.json();
-  if (iData.basari) { itemBarGuncelle(iData.itemler); kullanici = iData.kullanici; }
-}
+  const satBtn = document.getElementById('sat-btn');
+  if (satBtn) { satBtn.disabled = true; satBtn.textContent = '...'; }
 
-async function zorunluSat() {
-  if (!aktifPozisyon) return;
-  const r = await fetch('/api/sat', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bahis_id: aktifPozisyon.id, zorunlu: true })
-  });
-  const d = await r.json();
-  if (d.basari) {
+  try {
+    const r = await fetch('/api/sat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bahis_id: aktifPozisyon.id })
+    });
+    const d = await r.json();
+    if (!d.basari) {
+      bildirimGoster(d.mesaj, false);
+      if (satBtn) { satBtn.disabled = false; satBtn.textContent = 'SAT'; }
+      return;
+    }
     kullanici.jeton = d.yeniJeton;
     guncelleBilgi();
-    sonucGoster(d.kazanc, true);
-    sagAltBildirim(`Tur bitti — ${d.kazanc >= 0 ? '+' : ''}${d.kazanc.toLocaleString('tr-TR')} jeton`, d.kazanc >= 0 ? 'basari' : 'hata');
+    sonucGoster(d.kazanc, false);
+    if (d.kazanc > 0) sagAltBildirim(`+${d.kazanc.toLocaleString('tr-TR')} jeton kazandın!`, 'basari');
+    else if (d.kazanc < 0) sagAltBildirim(`${d.kazanc.toLocaleString('tr-TR')} jeton kaybettin.`, 'hata');
     resetPozisyon();
+    const info = await fetch('/api/benim-bilgilerim');
+    const iData = await info.json();
+    if (iData.basari) { itemBarGuncelle(iData.itemler); kullanici = iData.kullanici; }
+  } catch(e) {
+    bildirimGoster('Bağlantı hatası!', false);
+    if (satBtn) { satBtn.disabled = false; satBtn.textContent = 'SAT'; }
   }
 }
 
+// ─── BAHİS: ZORUNLU SAT ───
+async function zorunluSat() {
+  if (!aktifPozisyon) return;
+  try {
+    const r = await fetch('/api/sat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bahis_id: aktifPozisyon.id, zorunlu: true })
+    });
+    const d = await r.json();
+    if (d.basari) {
+      kullanici.jeton = d.yeniJeton;
+      guncelleBilgi();
+      sonucGoster(d.kazanc, true);
+      sagAltBildirim(`Tur bitti — ${d.kazanc >= 0 ? '+' : ''}${d.kazanc.toLocaleString('tr-TR')} jeton`, d.kazanc >= 0 ? 'basari' : 'hata');
+      resetPozisyon();
+    }
+  } catch(e) {}
+}
+
+// ─── POZİSYON SIFIRLA ───
 function resetPozisyon() {
   aktifPozisyon = null;
   pozisyonTemizle();
   const bassBtn = document.getElementById('bass-btn');
-  if (bassBtn) { bassBtn.style.display = 'block'; bassBtn.disabled = false; bassBtn.textContent = 'BASS'; }
-  document.getElementById('sat-btn').style.display = 'none';
-  document.getElementById('bahis-panel').classList.remove('aktif-pozisyon');
-  document.getElementById('aktif-bilgi-wrap').style.display = 'none';
+  if (bassBtn) { bassBtn.style.display = 'block'; bassBtn.disabled = false; bassBtn.textContent = 'BAS'; }
+  const satBtn = document.getElementById('sat-btn');
+  if (satBtn) satBtn.style.display = 'none';
+  const panel = document.getElementById('bahis-panel');
+  if (panel) panel.classList.remove('aktif-pozisyon');
+  const aw = document.getElementById('aktif-bilgi-wrap');
+  if (aw) aw.style.display = 'none';
   document.querySelectorAll('.item-chip').forEach(c => c.classList.remove('item-parlak'));
   const pl = document.getElementById('anlik-pl');
   if (pl) pl.textContent = '';
 }
+
 function sonucGoster(kazanc, zorunlu) {
   const overlay = document.getElementById('sonuc-overlay');
   const rakam = document.getElementById('sonuc-rakam');
@@ -478,7 +510,14 @@ function sonucGoster(kazanc, zorunlu) {
   setTimeout(() => { overlay.style.display = 'none'; }, 1500);
 }
 
-function hizliMiktar(m) { const el = document.getElementById('bahis-miktar'); if (el) el.value = m; }
+function bildirimGoster(mesaj, basari) {
+  const el = document.getElementById('bildirim-bar');
+  if (!el) return;
+  el.textContent = mesaj;
+  el.className = 'bildirim-bar ' + (basari ? 'bildirim-ok' : 'bildirim-hata');
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3500);
+}
 
 // ─── DUYURU ───
 const aktifDuyurular = new Map();
@@ -487,7 +526,6 @@ function duyuruGoster(d) {
   if (aktifDuyurular.has(d.id)) return;
   const kapsayici = document.getElementById('duyuru-kapsayici');
   if (!kapsayici) return;
-
   const el = document.createElement('div');
   el.id = `duyuru-${d.id}`;
   el.className = `duyuru-karti duyuru-${d.renk || 'gold'}`;
@@ -500,33 +538,13 @@ function duyuruGoster(d) {
   `;
   kapsayici.appendChild(el);
   aktifDuyurular.set(d.id, el);
-
-  if (d.sure_dk > 0) {
-    setTimeout(() => duyuruKapat(d.id), d.sure_dk * 60 * 1000);
-  }
+  if (d.sure_dk > 0) setTimeout(() => duyuruKapat(d.id), d.sure_dk * 60 * 1000);
 }
 
 function duyuruKapat(id) {
   const el = document.getElementById(`duyuru-${id}`);
   if (el) { el.classList.add('duyuru-cikis'); setTimeout(() => el.remove(), 400); }
   aktifDuyurular.delete(id);
-}
-
-// ─── PROMOSYON ───
-async function promoKullan() {
-  if (!kullanici) { window.location.href = '/giris'; return; }
-  const kod = document.getElementById('promo-input').value.trim();
-  if (!kod) return;
-  const r = await fetch('/api/promosyon/kullan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kod }) });
-  const d = await r.json();
-  bildirimGoster(d.mesaj, d.basari);
-  if (d.basari) {
-    kullanici.jeton = d.yeniJeton; guncelleBilgi();
-    document.getElementById('promo-input').value = '';
-    const info = await fetch('/api/benim-bilgilerim');
-    const iData = await info.json();
-    if (iData.basari) itemBarGuncelle(iData.itemler);
-  }
 }
 
 // ─── İTEM BAR ───
@@ -540,8 +558,7 @@ function itemBarGuncelle(itemler) {
     const div = document.createElement('div');
     const isCelik = item.item_kod === 'celik_kart';
     div.className = 'item-chip' + (isCelik ? ' item-celik' : '');
-    const sayiLabel = isCelik ? '∞' : `${item.kalan_kullanim}x`;
-    div.innerHTML = `<span class="item-chip-isim">${isimler[item.item_kod] || item.item_kod}</span><span class="item-chip-sayi">${sayiLabel}</span>`;
+    div.innerHTML = `<span class="item-chip-isim">${isimler[item.item_kod] || item.item_kod}</span><span class="item-chip-sayi">${isCelik ? '∞' : item.kalan_kullanim + 'x'}</span>`;
     if (item.item_kod === 'para_kopar') div.onclick = () => paraKopar();
     bar.appendChild(div);
   });
@@ -597,11 +614,9 @@ function chatEkle(id, nick, mesaj, tarih, jeton, renk, sira, celikKart) {
   const el = document.createElement('div');
   el.className = 'chat-satir' + (benim ? ' benim-chat' : '') + (celikKart ? ' celik-chat' : '');
   el.id = `cm-${id}`;
-  const celikRozet = celikKart ? `<span class="celik-rozet">💎</span>` : '';
-  const x4Rozet = celikKart ? `<span class="x4-rozet">x4</span>` : '';
   el.innerHTML = `
     <span class="chat-zaman">${saatStr}</span>
-    ${celikRozet}${x4Rozet}
+    ${celikKart ? '<span class="celik-rozet">💎</span><span class="x4-rozet">x4</span>' : ''}
     <span class="chat-nick" style="color:${nickRenk}">${escapeHtml(nick)}</span>
     <span class="chat-meta">#${sira||'?'} · ${(jeton||0).toLocaleString('tr-TR')}</span>
     <span class="chat-metin">${escapeHtml(mesaj)}</span>
@@ -621,54 +636,36 @@ function mesajGonder() {
   input.value = '';
 }
 
-function bildirimGoster(mesaj, basari) {
-  const el = document.getElementById('bildirim-bar');
-  if (!el) return;
-  el.textContent = mesaj;
-  el.className = 'bildirim-bar ' + (basari ? 'bildirim-ok' : 'bildirim-hata');
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 3500);
-}
-
 function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-async function cikisYap() { await fetch('/api/cikis',{method:'POST'}); window.location.href='/giris'; }
+async function cikisYap() { await fetch('/api/cikis', { method: 'POST' }); window.location.href = '/giris'; }
 
 // ─── EVENT LISTENER'LAR ───
-function eventleriBasla() {
+document.addEventListener('DOMContentLoaded', () => {
+  const bassBtn = document.getElementById('bass-btn');
   const satBtn = document.getElementById('sat-btn');
   const chatBtn = document.getElementById('chat-gonder-btn');
   const chatInput = document.getElementById('chat-input');
+  const bahisMiktar = document.getElementById('bahis-miktar');
 
+  if (bassBtn) bassBtn.addEventListener('click', bassBasildi);
   if (satBtn) satBtn.addEventListener('click', satisYap);
   if (chatBtn) chatBtn.addEventListener('click', mesajGonder);
   if (chatInput) chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') mesajGonder(); });
-
-  const bahisMiktar = document.getElementById('bahis-miktar');
   if (bahisMiktar) bahisMiktar.addEventListener('keydown', e => { if (e.key === 'Enter') bassBasildi(); });
 
   document.querySelectorAll('.hizli-btn').forEach(btn => {
-    btn.addEventListener('click', () => hizliMiktar(parseInt(btn.dataset.miktar)));
+    btn.addEventListener('click', () => {
+      const el = document.getElementById('bahis-miktar');
+      if (el) el.value = parseInt(btn.dataset.miktar);
+    });
   });
+});
 
-  const cikisBtn = document.querySelector('.btn-ghost-kirmizi');
-  if (cikisBtn) cikisBtn.addEventListener('click', cikisYap);
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', eventleriBasla);
-} else {
-  eventleriBasla();
-}
-
-// Space ile bahse gir / sat
-document.addEventListener('keydown', function(e) {
+// Space: pozisyon yoksa gir, varsa sat
+document.addEventListener('keydown', e => {
   if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
     e.preventDefault();
-    if (aktifPozisyon) {
-      satisYap();
-    } else {
-      bassBasildi();
-    }
+    aktifPozisyon ? satisYap() : bassBasildi();
   }
 });
 

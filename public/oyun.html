@@ -97,26 +97,30 @@
               <span id="anlik-pl" class="anlik-pl"></span>
             </div>
           </div>
-          <div class="bahis-ic">
-            <div class="miktar-grup">
-              <div class="miktar-label-row">
-                <label class="miktar-label">JETON MIKTARI</label>
-                <span class="min-bahis-chip" id="min-bahis-goster">Min: 150</span>
-              </div>
-              <div class="miktar-input-wrap">
-                <input type="number" id="bahis-miktar" value="150" min="1" class="miktar-input" inputmode="numeric" />
-                <div class="hizli-miktarlar">
-                  <button class="hizli-btn" data-miktar="150">150</button>
-                  <button class="hizli-btn" data-miktar="250">250</button>
-                  <button class="hizli-btn" data-miktar="500">500</button>
-                  <button class="hizli-btn" data-miktar="1000">1000</button>
-                </div>
-              </div>
+
+          <div class="bahis-ic-yeni">
+            <!-- ÜSTTE: label + min chip -->
+            <div class="miktar-label-row">
+              <label class="miktar-label">JETON MİKTARI</label>
+              <span class="min-bahis-chip" id="min-bahis-goster">Min: 150</span>
             </div>
-            <div class="bahis-buton-grup">
-              <div id="sat-btn" class="sat-btn" style="display:none;"></div>
+
+            <!-- INPUT -->
+            <input type="number" id="bahis-miktar" value="150" min="1" class="miktar-input" inputmode="numeric" />
+
+            <!-- HIZLI MIKTARLAR -->
+            <div class="hizli-miktarlar">
+              <button class="hizli-btn" data-miktar="150">150</button>
+              <button class="hizli-btn" data-miktar="250">250</button>
+              <button class="hizli-btn" data-miktar="500">500</button>
+              <button class="hizli-btn" data-miktar="1000">1000</button>
             </div>
+
+            <!-- BUTONLAR: BAS / SAT -->
+            <button id="bass-btn" class="bas-btn-tam">BAS</button>
+            <button id="sat-btn" class="sat-btn-tam" style="display:none;">SAT</button>
           </div>
+
           <div id="aktif-bilgi-wrap" class="aktif-bilgi-wrap" style="display:none;">
             <span class="aktif-bilgi-text">Giris Degeri: <strong id="giris-degeri">—</strong></span>
             <span class="aktif-bilgi-text">Pozisyon acik — istediginizde satin</span>
@@ -162,6 +166,6 @@
       }).catch(() => {});
     });
   </script>
-  <script src="/oyun.js?v=10"></script>
+  <script src="/oyun.js?v=12"></script>
 </body>
 </html>

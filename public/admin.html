@@ -43,6 +43,35 @@
       <!-- GRAFİK & TUR -->
       <section id="panel-grafik" class="admin-panel aktif-panel">
         <h2 class="admin-h2">Grafik &amp; Tur Kontrolu</h2>
+
+        <!-- CANLI GRAFİK -->
+        <div class="admin-kart" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <h3 style="margin:0;border:0;padding:0;">Canli Grafik</h3>
+              <span class="grafik-canli-dot" style="display:inline-block;"></span>
+              <span style="font-size:11px;color:var(--t3);letter-spacing:.08em;">CANLI</span>
+            </div>
+            <span id="adm-canli-deger" class="mono" style="font-size:22px;font-weight:800;color:#b42828;">—</span>
+          </div>
+          <canvas id="adm-grafik-canvas" style="width:100%;display:block;border-radius:8px;background:var(--bg-deep);"></canvas>
+
+          <!-- BASILI TUT BUTONLARI -->
+          <div style="display:flex;gap:12px;margin-top:16px;">
+            <button id="adm-yukari-btn" class="admin-btn-yukari"
+              onmousedown="grafikYonBasla('yukari')" onmouseup="grafikYonBirak()" onmouseleave="grafikYonBirak()"
+              ontouchstart="grafikYonBasla('yukari')" ontouchend="grafikYonBirak()">
+              ▲ YUKARI BAK (BASILI TUT)
+            </button>
+            <button id="adm-asagi-btn" class="admin-btn-asagi"
+              onmousedown="grafikYonBasla('asagi')" onmouseup="grafikYonBirak()" onmouseleave="grafikYonBirak()"
+              ontouchstart="grafikYonBasla('asagi')" ontouchend="grafikYonBirak()">
+              ▼ ASAGI BAK (BASILI TUT)
+            </button>
+          </div>
+          <div id="grafik-yon-msg" style="margin-top:8px;font-size:12px;color:var(--t3);min-height:18px;"></div>
+        </div>
+
         <div class="admin-grid">
 
           <div class="admin-kart">
@@ -333,6 +362,13 @@
 
     </main>
   </div>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      yukleGrafikAyar();
+      admGrafikBaslat();
+    });
+  </script>
 </body>
 </html>

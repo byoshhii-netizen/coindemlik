@@ -314,7 +314,7 @@ body {
 .geri-sayim-rakam.kritik { color: var(--red); animation: titreme 0.2s ease-in-out infinite alternate; }
 @keyframes titreme { from{transform:scale(1)} to{transform:scale(1.08)} }
 
-.bahis-ic { display: flex; align-items: flex-end; gap: 14px; }
+.bahis-ic { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
 
 .miktar-grup { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 
@@ -1002,6 +1002,8 @@ body {
 
 /* Bahis buton grubu */
 .bahis-buton-grup { display: flex; gap: 10px; flex-shrink: 0; }
+.bahis-buton-grup .bas-btn,
+.bahis-buton-grup .sat-btn { min-width: 100px; }
 
 /* Aktif bilgi */
 .aktif-bilgi-wrap {
@@ -1782,3 +1784,104 @@ body {
 .kart-rozet.visa { color: #1a73e8; border-color: rgba(26,115,232,0.3); }
 .kart-rozet.mc   { color: #eb001b; border-color: rgba(235,0,27,0.3); }
 .kart-rozet.troy { color: var(--gold); border-color: var(--gold-brd); }
+
+/* ══════════════════════════════════════════════
+   ADMİN YÖN BUTONLARI
+   ══════════════════════════════════════════════ */
+.admin-btn-yukari {
+  flex: 1; height: 52px;
+  background: linear-gradient(135deg, #166534 0%, #15803d 100%);
+  border: 1px solid rgba(34,197,94,0.3);
+  border-radius: var(--rad);
+  color: #4ade80; font-size: 15px; font-weight: 800;
+  letter-spacing: 0.05em; cursor: pointer;
+  transition: all 0.12s; font-family: 'Inter', sans-serif;
+  user-select: none; -webkit-user-select: none;
+}
+.admin-btn-yukari:hover { opacity: 0.9; }
+.admin-btn-yukari.btn-aktif-yukari {
+  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(34,197,94,0.5);
+  transform: scale(1.02);
+}
+
+.admin-btn-asagi {
+  flex: 1; height: 52px;
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--rad);
+  color: #f87171; font-size: 15px; font-weight: 800;
+  letter-spacing: 0.05em; cursor: pointer;
+  transition: all 0.12s; font-family: 'Inter', sans-serif;
+  user-select: none; -webkit-user-select: none;
+}
+.admin-btn-asagi:hover { opacity: 0.9; }
+.admin-btn-asagi.btn-aktif-asagi {
+  background: linear-gradient(135deg, #991b1b 0%, #ef4444 100%);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(239,68,68,0.5);
+  transform: scale(1.02);
+}
+
+#adm-grafik-canvas {
+  width: 100%;
+  height: 200px;
+  display: block;
+  border-radius: 8px;
+  background: var(--bg-deep);
+}
+
+/* ══════════════════════════════════════════════
+   BAHİS PANEL — YENİ DİKEY LAYOUT
+   ══════════════════════════════════════════════ */
+.bahis-ic-yeni {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bas-btn-tam {
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, #f0b429 0%, #d97706 100%);
+  border: none;
+  border-radius: var(--rad);
+  color: #000;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 4px 20px rgba(240,180,41,0.4);
+  font-family: 'Inter', sans-serif;
+}
+.bas-btn-tam:hover  { opacity: 0.88; transform: translateY(-1px); }
+.bas-btn-tam:active { transform: translateY(0); }
+.bas-btn-tam:disabled {
+  opacity: 0.45; cursor: not-allowed;
+  background: linear-gradient(135deg, #6b5a1f 0%, #4a3e14 100%);
+  box-shadow: none; transform: none;
+}
+
+.sat-btn-tam {
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  border: none;
+  border-radius: var(--rad);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 4px 20px rgba(239,68,68,0.4);
+  font-family: 'Inter', sans-serif;
+}
+.sat-btn-tam:hover  { opacity: 0.88; transform: translateY(-1px); }
+.sat-btn-tam:active { transform: translateY(0); }
+.sat-btn-tam:disabled {
+  opacity: 0.45; cursor: not-allowed;
+  box-shadow: none; transform: none;
+}

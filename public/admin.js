@@ -7,6 +7,7 @@ function goster(id, btn) {
   document.getElementById('panel-' + id).classList.add('aktif-panel');
   btn.classList.add('aktif');
   const m = {
+    grafik: yukleGrafikAyar,
     oyuncular: yukleOyuncular, botlar: yukleBotlar,
     itemlar: yukleItemlar, paketler: yuklePaketler,
     parakopar: yukleParaKopar, promosyon: yuklePromosyonlar,
@@ -18,6 +19,180 @@ function goster(id, btn) {
 }
 
 // ─── GRAFİK ───
+// Admin canlı grafik
+let admCanvas = null, admCtx = null;
+let admGecmis = [];
+let admYonInterval = null;
+let admYonAktif = false;
+
+function admGrafikBaslat() {
+  admCanvas = document.getElementById('adm-grafik-canvas');
+  if (!admCanvas) return;
+  admCanvas.width = admCanvas.parentElement.clientWidth;
+  admCanvas.height = 200;
+  admCtx = admCanvas.getContext('2d');
+
+  const socket = io();
+  socket.on('grafik_guncelle', (data) => {
+    admGecmis = data.gecmis || [];
+    const deger = data.deger;
+    const el = document.getElementById('adm-canli-deger');
+    if (el) el.textContent = deger.toFixed(2);
+    admGrafikCiz();
+  });
+
+  window.addEventListener('resize', () => {
+    if (!admCanvas) return;
+    admCanvas.width = admCanvas.parentElement.clientWidth;
+    admGrafikCiz();
+  });
+}
+
+function admGrafikCiz() {
+  if (!admCanvas || !admCtx || admGecmis.length < 2) return;
+  const w = admCanvas.width, h = admCanvas.height;
+  admCtx.clearRect(0, 0, w, h);
+
+  const degerler = admGecmis.map(g => g.deger);
+  const minD = Math.min(...degerler) * 0.93;
+  const maxD = Math.max(...degerler) * 1.07;
+  const aralik = maxD - minD || 1;
+  const padL = 52, padR = 10, padT = 14, padB = 28;
+  const gW = w - padL - padR, gH = h - padT - padB;
+  const rgb = '180,40,40';
+
+  // Grid
+  admCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+  admCtx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (gH / 4) * i;
+    admCtx.beginPath(); admCtx.moveTo(padL, y); admCtx.lineTo(padL + gW, y); admCtx.stroke();
+    admCtx.fillStyle = 'rgba(255,255,255,0.35)';
+    admCtx.font = '600 11px JetBrains Mono, monospace';
+    admCtx.textAlign = 'right';
+    admCtx.fillText((maxD - (aralik / 4) * i).toFixed(0), padL - 6, y + 4);
+  }
+
+  // Alan
+  const grad = admCtx.createLinearGradient(0, padT, 0, padT + gH);
+  grad.addColorStop(0, `rgba(${rgb},0.22)`);
+  grad.addColorStop(1, `rgba(${rgb},0.01)`);
+  admCtx.beginPath();
+  admGecmis.forEach((p, i) => {
+    const x = padL + (i / (admGecmis.length - 1)) * gW;
+    const y = padT + gH - ((p.deger - minD) / aralik) * gH;
+    i === 0 ? admCtx.moveTo(x, y) : admCtx.lineTo(x, y);
+  });
+  const sonD = degerler[degerler.length - 1];
+  admCtx.lineTo(padL + gW, padT + gH); admCtx.lineTo(padL, padT + gH); admCtx.closePath();
+  admCtx.fillStyle = grad; admCtx.fill();
+
+  // Çizgi
+  admCtx.beginPath();
+  admCtx.strokeStyle = `rgb(${rgb})`; admCtx.lineWidth = 2.5;
+  admCtx.lineJoin = 'round'; admCtx.lineCap = 'round';
+  admGecmis.forEach((p, i) => {
+    const x = padL + (i / (admGecmis.length - 1)) * gW;
+    const y = padT + gH - ((p.deger - minD) / aralik) * gH;
+    i === 0 ? admCtx.moveTo(x, y) : admCtx.lineTo(x, y);
+  });
+  admCtx.stroke();
+
+  // Son nokta
+  const lastX = padL + gW;
+  const lastY = padT + gH - ((sonD - minD) / aralik) * gH;
+  admCtx.beginPath(); admCtx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+  admCtx.fillStyle = `rgb(${rgb})`; admCtx.fill();
+  admCtx.strokeStyle = 'rgba(255,255,255,0.6)'; admCtx.lineWidth = 2; admCtx.stroke();
+
+  // Fiyat etiketi
+  admCtx.fillStyle = `rgba(${rgb},0.9)`;
+  admCtx.fillRect(lastX + 6, lastY - 10, 52, 20);
+  admCtx.fillStyle = '#fff';
+  admCtx.font = '700 11px JetBrains Mono, monospace';
+  admCtx.textAlign = 'left';
+  admCtx.fillText(sonD.toFixed(1), lastX + 10, lastY + 4);
+}
+
+// ─── BASILI TUT: YÖN KONTROLÜ ───
+function grafikYonBasla(yon) {
+  if (admYonAktif) return;
+  admYonAktif = true;
+
+  const msgEl = document.getElementById('grafik-yon-msg');
+  const yBtn = document.getElementById('adm-yukari-btn');
+  const aBtn = document.getElementById('adm-asagi-btn');
+
+  if (yon === 'yukari') {
+    if (msgEl) msgEl.textContent = '▲ Grafik yukarı itiliyor...';
+    if (yBtn) yBtn.classList.add('btn-aktif-yukari');
+  } else {
+    if (msgEl) msgEl.textContent = '▼ Grafik aşağı itiliyor...';
+    if (aBtn) aBtn.classList.add('btn-aktif-asagi');
+  }
+
+  // Her 800ms'de bir server'a yön komutu gönder
+  async function gonder() {
+    if (!admYonAktif) return;
+    try {
+      const ayarlar = {
+        guncelleme_suresi: parseInt(document.getElementById('g-sure').value) || 3000,
+        min_deger: parseFloat(document.getElementById('g-min').value) || 50,
+        max_deger: parseFloat(document.getElementById('g-max').value) || 500,
+        artma_orani: parseFloat(document.getElementById('g-artma').value) || 0.55,
+        max_degisim: parseInt(document.getElementById('g-degisim').value) || 40,
+        tur_suresi: parseInt(document.getElementById('g-tur-suresi').value) || 60,
+      };
+      // Yöne göre mevcut değerden hedef hesapla
+      const mevcutDeger = parseFloat(document.getElementById('adm-canli-deger').textContent) || 200;
+      const adim = ayarlar.max_degisim * 1.5;
+      const hedef = yon === 'yukari'
+        ? Math.min(mevcutDeger + adim, ayarlar.max_deger)
+        : Math.max(mevcutDeger - adim, ayarlar.min_deger);
+      await fetch('/api/admin/grafik-ayar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...ayarlar, siradaki_deger: hedef })
+      });
+    } catch(e) {}
+  }
+
+  gonder();
+  admYonInterval = setInterval(gonder, 800);
+}
+
+function grafikYonBirak() {
+  if (!admYonAktif) return;
+  admYonAktif = false;
+  if (admYonInterval) { clearInterval(admYonInterval); admYonInterval = null; }
+
+  const msgEl = document.getElementById('grafik-yon-msg');
+  if (msgEl) msgEl.textContent = '';
+
+  const yBtn = document.getElementById('adm-yukari-btn');
+  const aBtn = document.getElementById('adm-asagi-btn');
+  if (yBtn) yBtn.classList.remove('btn-aktif-yukari');
+  if (aBtn) aBtn.classList.remove('btn-aktif-asagi');
+}
+
+async function yukleGrafikAyar() {
+  const r = await fetch('/api/admin/grafik-ayar-yukle');
+  if (!r.ok) return;
+  const d = await r.json();
+  if (!d.basari) return;
+  const a = d.ayar;
+  const sure = document.getElementById('g-sure');
+  const artma = document.getElementById('g-artma');
+  const degisim = document.getElementById('g-degisim');
+  const turSuresi = document.getElementById('g-tur-suresi');
+  if (sure) sure.value = a.guncelleme_suresi || 3000;
+  if (artma) artma.value = a.artma_orani !== undefined ? a.artma_orani : 0.55;
+  if (degisim) degisim.value = a.max_degisim || 40;
+  document.getElementById('g-min').value = a.min_deger || 50;
+  document.getElementById('g-max').value = a.max_deger || 500;
+  if (turSuresi) turSuresi.value = a.tur_suresi || 60;
+}
+
 async function grafigKaydet() {
   const body = {
     guncelleme_suresi: parseInt(document.getElementById('g-sure').value),

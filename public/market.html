@@ -38,11 +38,16 @@
 
     <div class="sekme-bar">
       <button class="sekme-btn aktif-sekme" onclick="sekmeAc('gucler',this)">Ozel Gucler</button>
+      <button class="sekme-btn" onclick="sekmeAc('jeton',this)">Jeton Satin Al</button>
       <button class="sekme-btn" onclick="sekmeAc('promo',this)">Promosyon Kodu</button>
     </div>
 
     <div id="sekme-gucler">
       <div id="guc-grid" class="guc-grid"></div>
+    </div>
+
+    <div id="sekme-jeton" style="display:none;">
+      <div id="paket-grid" class="paket-grid"></div>
     </div>
 
     <div id="sekme-promo" style="display:none;">
@@ -143,6 +148,7 @@
 
     function sekmeAc(s, btn) {
       document.getElementById('sekme-gucler').style.display = s==='gucler'?'block':'none';
+      document.getElementById('sekme-jeton').style.display = s==='jeton'?'block':'none';
       document.getElementById('sekme-promo').style.display = s==='promo'?'block':'none';
       document.querySelectorAll('.sekme-btn').forEach(b=>b.classList.remove('aktif-sekme'));
       btn.classList.add('aktif-sekme');
