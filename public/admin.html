@@ -34,6 +34,7 @@
         <button class="anav-btn" onclick="goster('parakopar',this)">Para Kopar</button>
         <div class="anav-group-label">SİSTEM</div>
         <button class="anav-btn" onclick="goster('siteayar',this)">Site Ayarlari</button>
+        <button class="anav-btn" onclick="goster('slotayar',this)">Slot Ayarlari</button>
       </nav>
       <button onclick="cikis()" class="admin-cikis-btn">Cikis</button>
     </aside>
@@ -358,6 +359,69 @@
           <button class="admin-btn-ana" onclick="siteAyarKaydet()">Kaydet</button>
           <div id="sa-msg" class="admin-msg" style="display:none;"></div>
         </div>
+      </section>
+
+      <!-- SLOT AYARLARI -->
+      <section id="panel-slotayar" class="admin-panel">
+        <h2 class="admin-h2">Slot Makinesi Ayarlari</h2>
+        <div class="admin-grid">
+
+          <div class="admin-kart">
+            <h3 style="color:var(--gold);">🎮 Normal Slot</h3>
+            <div class="fg"><label>Durum</label>
+              <select id="sl-normal-aktif">
+                <option value="1">Aktif</option>
+                <option value="0">Pasif</option>
+              </select>
+            </div>
+            <div class="fg"><label>Tur Fiyati (Jeton)</label><input id="sl-normal-fiyat" type="number" value="50" min="1" /></div>
+            <div class="fg"><label>Kazanma Orani (%)</label><input id="sl-normal-kazanma" type="number" value="35" min="1" max="90" /></div>
+            <div class="fg"><label>Min Carpan</label><input id="sl-normal-carpan-min" type="number" value="0" min="0" step="0.1" /></div>
+            <div class="fg"><label>Max Carpan (Jackpot)</label><input id="sl-normal-carpan-max" type="number" value="5" min="1" step="0.5" /></div>
+          </div>
+
+          <div class="admin-kart">
+            <h3 style="color:#a78bfa;">👑 VIP Slot</h3>
+            <div class="fg"><label>Durum</label>
+              <select id="sl-vip-aktif">
+                <option value="1">Aktif</option>
+                <option value="0">Pasif</option>
+              </select>
+            </div>
+            <div class="fg"><label>Tur Fiyati (Jeton)</label><input id="sl-vip-fiyat" type="number" value="200" min="1" /></div>
+            <div class="fg"><label>Kazanma Orani (%)</label><input id="sl-vip-kazanma" type="number" value="40" min="1" max="90" /></div>
+            <div class="fg"><label>Min Carpan</label><input id="sl-vip-carpan-min" type="number" value="0" min="0" step="0.1" /></div>
+            <div class="fg"><label>Max Carpan (Jackpot)</label><input id="sl-vip-carpan-max" type="number" value="12" min="1" step="0.5" /></div>
+          </div>
+
+          <div class="admin-kart">
+            <h3 style="color:#38bdf8;">🚀 Plus+ Slot</h3>
+            <div class="fg"><label>Durum</label>
+              <select id="sl-plus-aktif">
+                <option value="1">Aktif</option>
+                <option value="0">Pasif</option>
+              </select>
+            </div>
+            <div class="fg"><label>Tur Fiyati (Jeton)</label><input id="sl-plus-fiyat" type="number" value="500" min="1" /></div>
+            <div class="fg"><label>Kazanma Orani (%)</label><input id="sl-plus-kazanma" type="number" value="45" min="1" max="90" /></div>
+            <div class="fg"><label>Min Carpan</label><input id="sl-plus-carpan-min" type="number" value="0" min="0" step="0.1" /></div>
+            <div class="fg"><label>Max Carpan (Jackpot)</label><input id="sl-plus-carpan-max" type="number" value="30" min="1" step="0.5" /></div>
+          </div>
+
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+          <button class="admin-btn-ana" onclick="slotAyarKaydet()">Tümünü Kaydet</button>
+          <div id="slot-ayar-msg" class="admin-msg" style="display:none;"></div>
+        </div>
+
+        <h3 style="font-size:15px;font-weight:700;margin:24px 0 12px;">Son Slot Logları</h3>
+        <div class="tablo-wrap">
+          <table class="admin-tablo">
+            <thead><tr><th>Tarih</th><th>Nick</th><th>Tip</th><th>Bahis</th><th>Semboller</th><th>Kazanç</th></tr></thead>
+            <tbody id="slot-log-tbody"></tbody>
+          </table>
+        </div>
+        <button class="admin-btn-kucuk" style="margin-top:10px;" onclick="yukleSlotLoglari()">Logları Yükle</button>
       </section>
 
     </main>

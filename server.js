@@ -72,10 +72,10 @@ app.get('/giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'gir
 app.get('/kayit', (req, res) => res.sendFile(path.join(__dirname, 'public', 'kayit.html')));
 app.get('/market', (req, res) => res.sendFile(path.join(__dirname, 'public', 'market.html')));
 app.get('/liderlik', (req, res) => res.sendFile(path.join(__dirname, 'public', 'liderlik.html')));
+app.get('/slot', (req, res) => res.sendFile(path.join(__dirname, 'public', 'slot.html')));
 app.get('/yonetbunlari/giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-giris.html')));
-app.get('/yonetbunlari', adminGerektir, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-// ─── AUTH ───
+app.get('/yonetbunlari', adminGerektir, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.post('/api/giris', (req, res) => {
   const { nick, sifre } = req.body;
   if (!nick || !sifre) return res.json({ basari: false, mesaj: 'Nick ve sifre gerekli.' });
@@ -327,6 +327,142 @@ app.get('/api/chat/gecmis', (req, res) => {
 app.get('/api/duyurular', (req, res) => {
   const duyurular = db.prepare('SELECT * FROM duyurular WHERE aktif = 1 ORDER BY id DESC').all();
   res.json({ basari: true, duyurular });
+});
+
+// ─── SLOT ───
+const SLOT_SEMBOLLER = {
+  normal: ['🍋','🍋','🍊','🍊','🍇','🍇','⭐','⭐','7️⃣','💎'],
+  vip:    ['🔥','🔥','💰','💰','👑','👑','⚡','⚡','💎','7️⃣'],
+  plus:   ['💎','💎','👑','👑','🚀','🚀','⚡','⚡','🌟','7️⃣']
+};
+
+function slotCevir(tip, ayar) {
+  const semboller = SLOT_SEMBOLLER[tip] || SLOT_SEMBOLLER.normal;
+  const kazanmaOrani = ayar[`${tip}_kazanma_orani`] || 35;
+
+  // 3 makara
+  const s1 = semboller[Math.floor(Math.random() * semboller.length)];
+  const s2 = semboller[Math.floor(Math.random() * semboller.length)];
+  const s3 = semboller[Math.floor(Math.random() * semboller.length)];
+
+  let carpan = 0;
+  const carpanMin = ayar[`${tip}_carpan_min`] || 0;
+  const carpanMax = ayar[`${tip}_carpan_max`] || 5;
+
+  if (s1 === s2 && s2 === s3) {
+    // 3 aynı — büyük kazanç
+    const ozel = ['7️⃣','💎','👑','🌟'];
+    if (ozel.includes(s1)) {
+      carpan = carpanMax; // max çarpan
+    } else {
+      carpan = carpanMin + (carpanMax - carpanMin) * 0.6;
+    }
+  } else if (s1 === s2 || s2 === s3 || s1 === s3) {
+    // 2 aynı — orta kazanç
+    if (Math.random() * 100 < kazanmaOrani) {
+      carpan = carpanMin + (carpanMax - carpanMin) * 0.25;
+    }
+  } else {
+    // Hiç eşleşme yok
+    if (Math.random() * 100 < kazanmaOrani * 0.3) {
+      carpan = carpanMin + (carpanMax - carpanMin) * 0.1;
+    }
+  }
+
+  carpan = Math.round(carpan * 100) / 100;
+  return { semboller: [s1, s2, s3], carpan };
+}
+
+app.get('/api/slot/ayarlar', (req, res) => {
+  const ayar = db.prepare('SELECT * FROM slot_ayarlari WHERE id = 1').get();
+  res.json({ basari: true, ayar: ayar || {} });
+});
+
+app.post('/api/slot/cevir', (req, res) => {
+  if (!req.session.kullanici) return res.status(401).json({ basari: false, mesaj: 'Giris gerekli.' });
+  const { tip } = req.body; // 'normal', 'vip', 'plus'
+  if (!['normal','vip','plus'].includes(tip)) return res.json({ basari: false, mesaj: 'Gecersiz slot tipi.' });
+
+  const ayar = db.prepare('SELECT * FROM slot_ayarlari WHERE id = 1').get();
+  if (!ayar) return res.json({ basari: false, mesaj: 'Slot ayarlari bulunamadi.' });
+
+  // VIP/Plus erişim kontrolü
+  if (tip === 'vip' && !ayar.vip_aktif) return res.json({ basari: false, mesaj: 'VIP Slot aktif degil.' });
+  if (tip === 'plus' && !ayar.plus_aktif) return res.json({ basari: false, mesaj: 'Plus+ Slot aktif degil.' });
+
+  const fiyat = ayar[`${tip}_fiyat`] || 50;
+  const k = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id);
+  if (!k) return res.json({ basari: false, mesaj: 'Kullanici bulunamadi.' });
+  if (k.jeton < fiyat) return res.json({ basari: false, mesaj: `Yetersiz jeton. Gerekli: ${fiyat}` });
+
+  // Bahsi düş
+  db.prepare('UPDATE kullanicilar SET jeton = jeton - ? WHERE id = ?').run(fiyat, k.id);
+
+  // Çevir
+  const sonuc = slotCevir(tip, ayar);
+  const kazanc = Math.round(fiyat * sonuc.carpan);
+
+  // Kazancı ekle
+  if (kazanc > 0) {
+    db.prepare('UPDATE kullanicilar SET jeton = jeton + ? WHERE id = ?').run(kazanc, k.id);
+  }
+
+  const yeniJeton = db.prepare('SELECT jeton FROM kullanicilar WHERE id = ?').get(k.id).jeton;
+
+  // Log
+  try {
+    db.prepare('INSERT INTO slot_loglari (kullanici_id, nick, slot_tip, bahis, semboller, kazanc) VALUES (?,?,?,?,?,?)')
+      .run(k.id, k.nick, tip, fiyat, sonuc.semboller.join(','), kazanc - fiyat);
+  } catch(e) {}
+
+  res.json({
+    basari: true,
+    semboller: sonuc.semboller,
+    carpan: sonuc.carpan,
+    bahis: fiyat,
+    kazanc,
+    net: kazanc - fiyat,
+    yeniJeton
+  });
+});
+
+// ─── ADMIN SLOT ───
+app.get('/api/admin/slot-ayarlari', adminGerektir, (req, res) => {
+  const ayar = db.prepare('SELECT * FROM slot_ayarlari WHERE id = 1').get();
+  res.json({ basari: true, ayar: ayar || {} });
+});
+
+app.post('/api/admin/slot-ayarlari', adminGerektir, (req, res) => {
+  const {
+    normal_fiyat, vip_fiyat, plus_fiyat,
+    normal_aktif, vip_aktif, plus_aktif,
+    normal_carpan_min, normal_carpan_max,
+    vip_carpan_min, vip_carpan_max,
+    plus_carpan_min, plus_carpan_max,
+    normal_kazanma_orani, vip_kazanma_orani, plus_kazanma_orani
+  } = req.body;
+  db.prepare(`UPDATE slot_ayarlari SET
+    normal_fiyat=?, vip_fiyat=?, plus_fiyat=?,
+    normal_aktif=?, vip_aktif=?, plus_aktif=?,
+    normal_carpan_min=?, normal_carpan_max=?,
+    vip_carpan_min=?, vip_carpan_max=?,
+    plus_carpan_min=?, plus_carpan_max=?,
+    normal_kazanma_orani=?, vip_kazanma_orani=?, plus_kazanma_orani=?
+    WHERE id=1`).run(
+    parseInt(normal_fiyat)||50, parseInt(vip_fiyat)||200, parseInt(plus_fiyat)||500,
+    normal_aktif?1:0, vip_aktif?1:0, plus_aktif?1:0,
+    parseFloat(normal_carpan_min)||0, parseFloat(normal_carpan_max)||5,
+    parseFloat(vip_carpan_min)||0, parseFloat(vip_carpan_max)||12,
+    parseFloat(plus_carpan_min)||0, parseFloat(plus_carpan_max)||30,
+    parseFloat(normal_kazanma_orani)||35, parseFloat(vip_kazanma_orani)||40, parseFloat(plus_kazanma_orani)||45
+  );
+  res.json({ basari: true, mesaj: 'Slot ayarlari guncellendi.' });
+});
+
+app.get('/api/admin/slot-loglari', adminGerektir, (req, res) => {
+  const limit = parseInt(req.query.limit) || 100;
+  const loglar = db.prepare('SELECT * FROM slot_loglari ORDER BY id DESC LIMIT ?').all(limit);
+  res.json({ basari: true, loglar });
 });
 
 // ─── PROMOSYON ───

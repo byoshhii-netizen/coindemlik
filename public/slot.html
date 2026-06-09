@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin — Slot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/slot.css" />
+</head>
+<body class="sayfa-body">
+
+  <!-- ÜST BAR -->
+  <header class="ust-bar">
+    <div class="logo-alan">
+      <a href="/" class="logo-link">
+        <div class="logo-mark">DC</div>
+        <span class="logo-text">DemliCoin</span>
+      </a>
+    </div>
+    <div class="kullanici-bilgi" id="kullanici-bilgi-alan">
+      <span class="nick-pill" id="hosgeldin-nick"></span>
+      <div class="jeton-pill">
+        <img src="/coin.svg" class="coin-img" alt="jeton" />
+        <span class="jeton-sayi" id="jeton-miktar">0</span>
+      </div>
+      <div class="nav-sep"></div>
+      <a href="/" class="nav-link">Oyun</a>
+      <a href="/market" class="nav-link">Market</a>
+      <a href="/liderlik" class="nav-link">Liderlik</a>
+      <button onclick="cikisYap()" class="btn-ghost-kirmizi">Cikis</button>
+    </div>
+    <div id="misafir-alan" style="display:none;gap:8px;align-items:center;">
+      <a href="/giris" class="btn-outline">Giris Yap</a>
+      <a href="/kayit" class="btn-altin">Kayit Ol</a>
+    </div>
+  </header>
+
+  <!-- SONUÇ OVERLAY -->
+  <div id="slot-overlay" class="slot-overlay" style="display:none;">
+    <div class="slot-overlay-ic">
+      <div id="slot-overlay-emoji">🎰</div>
+      <div id="slot-overlay-baslik">KAZANDIN!</div>
+      <div id="slot-overlay-miktar">+0</div>
+      <div id="slot-overlay-alt">JETON</div>
+    </div>
+  </div>
+
+  <div class="sayfa-icerik slot-sayfa">
+    <div class="sayfa-baslik-grup">
+      <h1 class="sayfa-h1">🎰 Slot Makinesi</h1>
+      <p style="color:var(--t2);font-size:14px;">Makara çevir, büyük kazanç yakala</p>
+    </div>
+
+    <!-- SLOT TİPİ SEÇIMI -->
+    <div class="slot-tip-bar">
+      <button class="slot-tip-btn slot-tip-aktif" data-tip="normal" onclick="slotTipSec('normal', this)">
+        <span class="slot-tip-icon">🎮</span>
+        <span class="slot-tip-isim">NORMAL</span>
+        <span class="slot-tip-fiyat" id="fiyat-normal">50 Jeton</span>
+      </button>
+      <button class="slot-tip-btn slot-tip-vip" data-tip="vip" onclick="slotTipSec('vip', this)">
+        <span class="slot-tip-icon">👑</span>
+        <span class="slot-tip-isim">VIP</span>
+        <span class="slot-tip-fiyat" id="fiyat-vip">200 Jeton</span>
+        <span class="slot-kilitli-rozet" id="vip-kilitli" style="display:none;">🔒</span>
+      </button>
+      <button class="slot-tip-btn slot-tip-plus" data-tip="plus" onclick="slotTipSec('plus', this)">
+        <span class="slot-tip-icon">🚀</span>
+        <span class="slot-tip-isim">PLUS+</span>
+        <span class="slot-tip-fiyat" id="fiyat-plus">500 Jeton</span>
+        <span class="slot-kilitli-rozet" id="plus-kilitli" style="display:none;">🔒</span>
+      </button>
+    </div>
+
+    <!-- SLOT MAKİNESİ -->
+    <div class="slot-makine" id="slot-makine">
+
+      <!-- DEKORATIF ÜST IŞIKLAR -->
+      <div class="slot-isiklar">
+        <span class="slot-isik"></span><span class="slot-isik"></span><span class="slot-isik"></span>
+        <span class="slot-isik"></span><span class="slot-isik"></span><span class="slot-isik"></span>
+        <span class="slot-isik"></span><span class="slot-isik"></span><span class="slot-isik"></span>
+      </div>
+
+      <!-- MAKARA ÇERÇEVESİ -->
+      <div class="slot-cerceve">
+        <div class="slot-cerceve-ic">
+
+          <!-- 3 MAKARA -->
+          <div class="slot-makaralar">
+            <div class="slot-makara-wrap">
+              <div class="slot-makara" id="makara-0">
+                <div class="slot-sembol-track" id="track-0">
+                  <!-- JS tarafından doldurulur -->
+                </div>
+              </div>
+            </div>
+            <div class="slot-sep">⚡</div>
+            <div class="slot-makara-wrap">
+              <div class="slot-makara" id="makara-1">
+                <div class="slot-sembol-track" id="track-1"></div>
+              </div>
+            </div>
+            <div class="slot-sep">⚡</div>
+            <div class="slot-makara-wrap">
+              <div class="slot-makara" id="makara-2">
+                <div class="slot-sembol-track" id="track-2"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KAZANAN ÇİZGİ -->
+          <div class="slot-kazan-cizgi" id="slot-kazan-cizgi"></div>
+
+        </div>
+      </div>
+
+      <!-- ALT PANEL -->
+      <div class="slot-alt-panel">
+        <div class="slot-bilgi-row">
+          <div class="slot-bilgi-item">
+            <span class="slot-bilgi-label">TİP</span>
+            <span class="slot-bilgi-deger" id="aktif-tip-goster">NORMAL</span>
+          </div>
+          <div class="slot-bilgi-item">
+            <span class="slot-bilgi-label">BAHİS</span>
+            <span class="slot-bilgi-deger mono" id="aktif-bahis-goster">50</span>
+          </div>
+          <div class="slot-bilgi-item">
+            <span class="slot-bilgi-label">SON KAZANÇ</span>
+            <span class="slot-bilgi-deger mono" id="son-kazanc-goster">—</span>
+          </div>
+        </div>
+
+        <button class="slot-cevir-btn" id="slot-cevir-btn" onclick="slotCevir()">
+          <span id="slot-btn-icerik">🎰 ÇEVİR</span>
+        </button>
+      </div>
+
+      <!-- DEKORATIF ALT IŞIKLAR -->
+      <div class="slot-isiklar slot-isiklar-alt">
+        <span class="slot-isik"></span><span class="slot-isik"></span><span class="slot-isik"></span>
+        <span class="slot-isik"></span><span class="slot-isik"></span><span class="slot-isik"></span>
+        <span class="slot-isik"></span><span class="slot-isik"></span><span class="slot-isik"></span>
+      </div>
+
+    </div>
+
+    <!-- ÖDEME TABLOSU -->
+    <div class="slot-odeme-wrap">
+      <h3 class="slot-odeme-baslik">💰 Ödeme Tablosu</h3>
+      <div class="slot-odeme-grid" id="odeme-grid">
+        <!-- JS tarafından doldurulur -->
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast" style="display:none;"></div>
+
+  <script src="/slot.js"></script>
+</body>
+</html>

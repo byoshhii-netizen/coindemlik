@@ -13,7 +13,8 @@ function goster(id, btn) {
     parakopar: yukleParaKopar, promosyon: yuklePromosyonlar,
     siteayar: yukleSiteAyar, loglar: yukleLoglari,
     ipler: yukleIpler, chatcanli: yukleCanliChat,
-    chat: () => {}, duyuru: yukleDuyurular
+    chat: () => {}, duyuru: yukleDuyurular,
+    slotayar: yukleSlotAyar
   };
   if (m[id]) m[id]();
 }
@@ -620,6 +621,72 @@ async function promoSil(id) {
   if (!confirm('Silinsin mi?')) return;
   await fetch('/api/admin/promosyon-sil', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
   yuklePromosyonlar();
+}
+
+// ─── SLOT AYARLARI ───
+async function yukleSlotAyar() {
+  const r = await fetch('/api/admin/slot-ayarlari');
+  const d = await r.json();
+  if (!d.basari) return;
+  const a = d.ayar;
+  document.getElementById('sl-normal-aktif').value = a.normal_aktif ? '1' : '0';
+  document.getElementById('sl-normal-fiyat').value = a.normal_fiyat || 50;
+  document.getElementById('sl-normal-kazanma').value = a.normal_kazanma_orani || 35;
+  document.getElementById('sl-normal-carpan-min').value = a.normal_carpan_min || 0;
+  document.getElementById('sl-normal-carpan-max').value = a.normal_carpan_max || 5;
+  document.getElementById('sl-vip-aktif').value = a.vip_aktif ? '1' : '0';
+  document.getElementById('sl-vip-fiyat').value = a.vip_fiyat || 200;
+  document.getElementById('sl-vip-kazanma').value = a.vip_kazanma_orani || 40;
+  document.getElementById('sl-vip-carpan-min').value = a.vip_carpan_min || 0;
+  document.getElementById('sl-vip-carpan-max').value = a.vip_carpan_max || 12;
+  document.getElementById('sl-plus-aktif').value = a.plus_aktif ? '1' : '0';
+  document.getElementById('sl-plus-fiyat').value = a.plus_fiyat || 500;
+  document.getElementById('sl-plus-kazanma').value = a.plus_kazanma_orani || 45;
+  document.getElementById('sl-plus-carpan-min').value = a.plus_carpan_min || 0;
+  document.getElementById('sl-plus-carpan-max').value = a.plus_carpan_max || 30;
+}
+
+async function slotAyarKaydet() {
+  const body = {
+    normal_aktif:       document.getElementById('sl-normal-aktif').value === '1',
+    normal_fiyat:       document.getElementById('sl-normal-fiyat').value,
+    normal_kazanma_orani: document.getElementById('sl-normal-kazanma').value,
+    normal_carpan_min:  document.getElementById('sl-normal-carpan-min').value,
+    normal_carpan_max:  document.getElementById('sl-normal-carpan-max').value,
+    vip_aktif:          document.getElementById('sl-vip-aktif').value === '1',
+    vip_fiyat:          document.getElementById('sl-vip-fiyat').value,
+    vip_kazanma_orani:  document.getElementById('sl-vip-kazanma').value,
+    vip_carpan_min:     document.getElementById('sl-vip-carpan-min').value,
+    vip_carpan_max:     document.getElementById('sl-vip-carpan-max').value,
+    plus_aktif:         document.getElementById('sl-plus-aktif').value === '1',
+    plus_fiyat:         document.getElementById('sl-plus-fiyat').value,
+    plus_kazanma_orani: document.getElementById('sl-plus-kazanma').value,
+    plus_carpan_min:    document.getElementById('sl-plus-carpan-min').value,
+    plus_carpan_max:    document.getElementById('sl-plus-carpan-max').value,
+  };
+  const r = await fetch('/api/admin/slot-ayarlari', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json();
+  msg('slot-ayar-msg', d.mesaj || (d.basari ? 'Kaydedildi' : 'Hata'), d.basari);
+}
+
+async function yukleSlotLoglari() {
+  const r = await fetch('/api/admin/slot-loglari?limit=50');
+  const d = await r.json();
+  const tbody = document.getElementById('slot-log-tbody');
+  if (!d.loglar.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--t3);padding:16px;">Log yok</td></tr>'; return; }
+  tbody.innerHTML = d.loglar.map(l => {
+    const sc = l.kazanc > 0 ? 'var(--green)' : l.kazanc < 0 ? 'var(--red)' : 'var(--t2)';
+    const ss = l.kazanc > 0 ? `+${l.kazanc.toLocaleString('tr-TR')}` : (l.kazanc||0).toLocaleString('tr-TR');
+    const tipRenk = l.slot_tip==='vip'?'#a78bfa':l.slot_tip==='plus'?'#38bdf8':'var(--gold)';
+    return `<tr>
+      <td style="font-size:11px;color:var(--t3);">${new Date(l.tarih).toLocaleString('tr-TR')}</td>
+      <td><strong>${esc(l.nick||'?')}</strong></td>
+      <td style="color:${tipRenk};font-weight:700;">${(l.slot_tip||'').toUpperCase()}</td>
+      <td class="mono">${(l.bahis||0).toLocaleString('tr-TR')}</td>
+      <td style="font-size:18px;">${(l.semboller||'').replace(/,/g,' ')}</td>
+      <td class="mono" style="color:${sc};font-weight:700;">${ss}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ─── SİTE AYARLARI ───

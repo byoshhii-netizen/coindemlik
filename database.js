@@ -138,7 +138,43 @@ db.exec(`
   );
 `);
 
-// Eski DB uyum kolonları
+// ─── SLOT TABLOLARI ───
+try { db.exec(`
+  CREATE TABLE IF NOT EXISTS slot_ayarlari (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    normal_fiyat INTEGER DEFAULT 50,
+    vip_fiyat INTEGER DEFAULT 200,
+    plus_fiyat INTEGER DEFAULT 500,
+    normal_aktif INTEGER DEFAULT 1,
+    vip_aktif INTEGER DEFAULT 1,
+    plus_aktif INTEGER DEFAULT 1,
+    normal_carpan_min REAL DEFAULT 0,
+    normal_carpan_max REAL DEFAULT 5,
+    vip_carpan_min REAL DEFAULT 0,
+    vip_carpan_max REAL DEFAULT 12,
+    plus_carpan_min REAL DEFAULT 0,
+    plus_carpan_max REAL DEFAULT 30,
+    normal_kazanma_orani REAL DEFAULT 35,
+    vip_kazanma_orani REAL DEFAULT 40,
+    plus_kazanma_orani REAL DEFAULT 45
+  );
+  CREATE TABLE IF NOT EXISTS slot_loglari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_id INTEGER,
+    nick TEXT,
+    slot_tip TEXT,
+    bahis INTEGER,
+    semboller TEXT,
+    kazanc INTEGER,
+    tarih DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`); } catch(e) {}
+
+// Slot ayarlari default
+try {
+  const sa = db.prepare('SELECT COUNT(*) as c FROM slot_ayarlari').get();
+  if (sa.c === 0) db.prepare('INSERT INTO slot_ayarlari (id) VALUES (1)').run();
+} catch(e) {}
 try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN renk TEXT DEFAULT NULL`); } catch(e) {}
 try { db.exec(`ALTER TABLE site_ayarlari ADD COLUMN min_bahis INTEGER DEFAULT 150`); } catch(e) {}
 try { db.exec(`ALTER TABLE grafik_ayarlari ADD COLUMN tur_suresi INTEGER DEFAULT 60`); } catch(e) {}
