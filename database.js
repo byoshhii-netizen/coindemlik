@@ -177,6 +177,55 @@ try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN celik_kart INTEGER DEFAULT 0`
 try { db.exec(`ALTER TABLE kullanici_itemlari ADD COLUMN aktif INTEGER DEFAULT 0`); } catch(e) {}
 try { db.exec(`ALTER TABLE site_ayarlari ADD COLUMN kullanim_kosullari TEXT DEFAULT NULL`); } catch(e) {}
 
+// Çark tablosu
+try { db.exec(`
+  CREATE TABLE IF NOT EXISTS cark_ayarlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tip TEXT NOT NULL,
+    isim TEXT NOT NULL,
+    fiyat INTEGER DEFAULT 100,
+    aktif INTEGER DEFAULT 1,
+    dilimler TEXT NOT NULL DEFAULT '[]'
+  );
+`); } catch(e) {}
+
+// Çark varsayılan veriler
+try {
+  const carkSayisi = db.prepare('SELECT COUNT(*) as c FROM cark_ayarlari').get();
+  if (carkSayisi.c === 0) {
+    const normalDilimler = JSON.stringify([
+      { isim: 'KAYBETTIN', jeton: 0,    sans: 30 },
+      { isim: '50 JETON',  jeton: 50,   sans: 25 },
+      { isim: '100 JETON', jeton: 100,  sans: 20 },
+      { isim: '200 JETON', jeton: 200,  sans: 12 },
+      { isim: '500 JETON', jeton: 500,  sans: 8  },
+      { isim: '1K JETON',  jeton: 1000, sans: 4  },
+      { isim: '2K JETON',  jeton: 2000, sans: 1  }
+    ]);
+    const vipDilimler = JSON.stringify([
+      { isim: 'KAYBETTIN', jeton: 0,    sans: 20 },
+      { isim: '200 JETON', jeton: 200,  sans: 25 },
+      { isim: '500 JETON', jeton: 500,  sans: 20 },
+      { isim: '1K JETON',  jeton: 1000, sans: 15 },
+      { isim: '2K JETON',  jeton: 2000, sans: 10 },
+      { isim: '5K JETON',  jeton: 5000, sans: 8  },
+      { isim: '10K JETON', jeton: 10000,sans: 2  }
+    ]);
+    const plusDilimler = JSON.stringify([
+      { isim: 'KAYBETTIN', jeton: 0,     sans: 15 },
+      { isim: '1K JETON',  jeton: 1000,  sans: 25 },
+      { isim: '2K JETON',  jeton: 2000,  sans: 20 },
+      { isim: '5K JETON',  jeton: 5000,  sans: 18 },
+      { isim: '10K JETON', jeton: 10000, sans: 12 },
+      { isim: '25K JETON', jeton: 25000, sans: 8  },
+      { isim: '50K JETON', jeton: 50000, sans: 2  }
+    ]);
+    db.prepare("INSERT INTO cark_ayarlari (tip, isim, fiyat, aktif, dilimler) VALUES (?,?,?,?,?)").run('normal', 'Normal Cark', 100, 1, normalDilimler);
+    db.prepare("INSERT INTO cark_ayarlari (tip, isim, fiyat, aktif, dilimler) VALUES (?,?,?,?,?)").run('vip', 'VIP Cark', 400, 1, vipDilimler);
+    db.prepare("INSERT INTO cark_ayarlari (tip, isim, fiyat, aktif, dilimler) VALUES (?,?,?,?,?)").run('plus', 'Plus+ Cark', 1000, 1, plusDilimler);
+  }
+} catch(e) {}
+
 // Site ayarları
 const siteAyarSayisi = db.prepare('SELECT COUNT(*) as c FROM site_ayarlari').get();
 if (siteAyarSayisi.c === 0) {

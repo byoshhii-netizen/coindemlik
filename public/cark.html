@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/logo.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemliCoin — Cark</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/cark.css" />
+</head>
+<body class="sayfa-body">
+
+  <!-- SONUÇ OVERLAY -->
+  <div id="cark-overlay" class="cark-overlay" style="display:none;">
+    <div class="cark-overlay-ic">
+      <div class="cark-overlay-label" id="cark-ov-label">KAZANDIN</div>
+      <div class="cark-overlay-miktar" id="cark-ov-miktar">+0</div>
+      <div class="cark-overlay-alt" id="cark-ov-alt">JETON</div>
+    </div>
+  </div>
+
+  <!-- ÜST BAR -->
+  <header class="ust-bar">
+    <div class="logo-alan">
+      <a href="/" class="logo-link">
+        <img src="/logo.png" class="logo-img" alt="logo" style="height:30px;border-radius:4px;" />
+        <span class="logo-text">DemliCoin</span>
+      </a>
+    </div>
+    <div class="kullanici-bilgi" id="kullanici-bilgi-alan">
+      <span class="nick-pill" id="hosgeldin-nick"></span>
+      <div class="jeton-pill">
+        <img src="/coin.svg" class="coin-img" alt="jeton" />
+        <span class="jeton-sayi" id="jeton-miktar">0</span>
+      </div>
+      <div class="nav-sep"></div>
+      <a href="/" class="nav-link">Oyun</a>
+      <a href="/market" class="nav-link">Market</a>
+      <a href="/slot" class="nav-link">Slot</a>
+      <a href="/cark" class="nav-link nav-link-aktif">Cark</a>
+      <a href="/liderlik" class="nav-link">Liderlik</a>
+      <button onclick="cikisYap()" class="btn-ghost-kirmizi">Cikis</button>
+    </div>
+    <div id="misafir-alan" style="display:none;gap:8px;align-items:center;">
+      <a href="/giris" class="btn-outline">Giris Yap</a>
+      <a href="/kayit" class="btn-altin">Kayit Ol</a>
+    </div>
+  </header>
+
+  <div class="sayfa-icerik cark-sayfa">
+    <div class="sayfa-baslik-grup">
+      <h1 class="sayfa-h1">JETON CARKI</h1>
+      <p style="color:var(--t2);font-size:14px;">Carki cevir, jeton kazan</p>
+    </div>
+
+    <!-- CARK TİP SEÇİMİ -->
+    <div class="cark-tip-bar" id="cark-tip-bar">
+      <!-- JS tarafından doldurulur -->
+    </div>
+
+    <!-- CARK ALANI -->
+    <div class="cark-alan">
+      <!-- SABİT OK (ibre) -->
+      <div class="cark-ibre"></div>
+
+      <!-- CANVAS -->
+      <canvas id="cark-canvas" width="360" height="360"></canvas>
+
+      <!-- MERKEZ DAİRE -->
+      <div class="cark-merkez">
+        <span class="cark-merkez-ic">DC</span>
+      </div>
+    </div>
+
+    <!-- ALT PANEL -->
+    <div class="cark-alt">
+      <div class="cark-bilgi-row">
+        <div class="cark-bilgi">
+          <span class="cark-bilgi-label">TİP</span>
+          <span class="cark-bilgi-deger" id="cark-aktif-tip">-</span>
+        </div>
+        <div class="cark-bilgi">
+          <span class="cark-bilgi-label">MALİYET</span>
+          <span class="cark-bilgi-deger mono" id="cark-aktif-fiyat">-</span>
+        </div>
+        <div class="cark-bilgi">
+          <span class="cark-bilgi-label">SON KAZANÇ</span>
+          <span class="cark-bilgi-deger mono" id="cark-son-kazanc">-</span>
+        </div>
+      </div>
+
+      <button class="cark-cevir-btn" id="cark-cevir-btn" onclick="carkCevir()">
+        <span id="cark-btn-icerik">CARKI CEVİR</span>
+        <span class="cark-btn-jeton" id="cark-btn-jeton"></span>
+      </button>
+    </div>
+
+    <!-- DİLİM TABLOSU -->
+    <div class="cark-tablo-wrap">
+      <h3 class="cark-tablo-baslik">ODUL TABLOSU</h3>
+      <div id="cark-odul-tablo" class="cark-odul-grid"></div>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast" style="display:none;"></div>
+  <script src="/cark.js"></script>
+</body>
+</html>

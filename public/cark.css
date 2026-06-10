@@ -1,0 +1,238 @@
+/* ══════════════════════════════════════════════
+   JETON CARKI — DemliCoin
+   ══════════════════════════════════════════════ */
+
+.cark-sayfa {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 12px 60px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ─── TİP BAR ─── */
+.cark-tip-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.cark-tip-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 13px 6px 11px;
+  background: var(--bg-2);
+  border: 2px solid var(--brd);
+  border-radius: var(--rad2);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: 'Inter', sans-serif;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.cark-tip-btn:active { transform: scale(0.97); }
+.cark-tip-aktif {
+  border-color: var(--gold) !important;
+  color: var(--t1) !important;
+  background: var(--gold-dim) !important;
+  box-shadow: 0 0 16px rgba(240,180,41,0.15);
+}
+.cark-tip-isim { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; }
+.cark-tip-fiyat {
+  font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gold);
+  background: rgba(240,180,41,0.1);
+  border: 1px solid rgba(240,180,41,0.25);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+/* ─── ÇARK ALANI ─── */
+.cark-alan {
+  position: relative;
+  width: 360px;
+  height: 360px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#cark-canvas {
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px rgba(240,180,41,0.25),
+    0 0 40px rgba(240,180,41,0.1),
+    0 12px 48px rgba(0,0,0,0.7);
+  display: block;
+}
+
+/* Üst ibre (ok) */
+.cark-ibre {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 22px solid var(--gold);
+  filter: drop-shadow(0 2px 6px rgba(240,180,41,0.6));
+  z-index: 10;
+}
+
+/* Merkez daire */
+.cark-merkez {
+  position: absolute;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: #0d0d1a;
+  border: 2px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.8);
+}
+.cark-merkez-ic {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; font-weight: 900;
+  color: var(--gold);
+}
+
+/* ─── ALT PANEL ─── */
+.cark-alt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cark-bilgi-row {
+  display: flex;
+  justify-content: space-around;
+  background: var(--bg-2);
+  border-radius: 12px;
+  padding: 10px 8px;
+  border: 1px solid var(--brd);
+}
+.cark-bilgi { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cark-bilgi-label { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: var(--t3); text-transform: uppercase; }
+.cark-bilgi-deger { font-size: 15px; font-weight: 800; color: var(--t1); font-family: 'JetBrains Mono', monospace; }
+
+/* ─── ÇEVİR BUTONU ─── */
+.cark-cevir-btn {
+  width: 100%;
+  height: 58px;
+  background: linear-gradient(135deg, #f0b429 0%, #d97706 100%);
+  border: none;
+  border-radius: var(--rad2);
+  color: #000;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+  box-shadow: 0 4px 24px rgba(240,180,41,0.45);
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  animation: carkBtnNabiz 2.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+.cark-cevir-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  animation: carkParlama 2.5s ease-in-out infinite;
+}
+@keyframes carkParlama { 0%{left:-100%} 40%{left:120%} 100%{left:120%} }
+@keyframes carkBtnNabiz {
+  0%,100% { box-shadow: 0 4px 24px rgba(240,180,41,0.45); }
+  50%      { box-shadow: 0 4px 36px rgba(240,180,41,0.75); }
+}
+.cark-cevir-btn:active:not(:disabled) { transform: scale(0.97); filter: brightness(0.9); }
+.cark-cevir-btn:disabled {
+  opacity: 0.55; cursor: not-allowed;
+  animation: none; transform: none;
+}
+.cark-cevir-btn:disabled::after { animation: none; }
+.cark-btn-jeton {
+  font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  opacity: 0.75;
+}
+
+/* ─── KAYIP EFEKTİ ─── */
+.cark-kayip { animation: carkKayip 0.35s ease; }
+@keyframes carkKayip {
+  0%,100%{ transform: translateX(0); }
+  20%{ transform: translateX(-5px); }
+  40%{ transform: translateX(5px); }
+  60%{ transform: translateX(-3px); }
+  80%{ transform: translateX(3px); }
+}
+
+/* ─── OVERLAY ─── */
+.cark-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4,8,15,0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: carkOvAc 0.25s ease;
+}
+@keyframes carkOvAc { from{opacity:0} to{opacity:1} }
+.cark-overlay-ic {
+  text-align: center;
+  animation: carkOvZipla 0.45s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes carkOvZipla {
+  from { opacity:0; transform: scale(0.3) translateY(50px); }
+  to   { opacity:1; transform: scale(1)   translateY(0); }
+}
+.cark-overlay-label {
+  font-size: 14px; font-weight: 800; letter-spacing: 0.15em;
+  color: var(--gold); text-transform: uppercase; margin-bottom: 8px;
+}
+.cark-overlay-miktar {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 60px; font-weight: 900;
+  color: var(--green);
+  text-shadow: 0 0 40px rgba(16,185,129,0.6);
+  letter-spacing: -0.03em; line-height: 1;
+}
+.cark-overlay-alt {
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.2em; color: var(--t3); margin-top: 8px;
+}
+
+/* ─── ÖDÜL TABLOSU ─── */
+.cark-tablo-wrap { margin-top: 24px; }
+.cark-tablo-baslik { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--t3); margin-bottom: 10px; }
+.cark-odul-grid { display: flex; flex-direction: column; gap: 4px; }
+.cark-odul-satir {
+  display: flex; align-items: center;
+  background: var(--bg-1); border: 1px solid var(--brd);
+  border-left: 3px solid var(--d-renk, var(--brd));
+  border-radius: 8px; padding: 8px 12px; gap: 0;
+}
+.cark-odul-isim { flex: 1; font-size: 13px; font-weight: 700; color: var(--t1); }
+.cark-odul-jeton { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--gold); margin-right: 16px; }
+.cark-odul-sans { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--t3); min-width: 36px; text-align: right; }
+
+/* ─── MOBİL ─── */
+@media (max-width: 420px) {
+  .cark-sayfa { padding: 12px 8px 50px; }
+  .cark-alan { width: 300px; height: 300px; }
+  #cark-canvas { width: 300px; height: 300px; }
+  .cark-cevir-btn { height: 52px; font-size: 15px; }
+}

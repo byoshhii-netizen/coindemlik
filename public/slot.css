@@ -418,3 +418,18 @@
   #slot-overlay-miktar { font-size: 44px; }
   #slot-overlay-baslik { font-size: 22px; }
 }
+
+/* Buton içi jeton göstergesi */
+.slot-cevir-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.slot-btn-jeton {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  opacity: 0.75;
+  letter-spacing: 0;
+}

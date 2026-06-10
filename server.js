@@ -73,6 +73,7 @@ app.get('/kayit', (req, res) => res.sendFile(path.join(__dirname, 'public', 'kay
 app.get('/market', (req, res) => res.sendFile(path.join(__dirname, 'public', 'market.html')));
 app.get('/liderlik', (req, res) => res.sendFile(path.join(__dirname, 'public', 'liderlik.html')));
 app.get('/slot', (req, res) => res.sendFile(path.join(__dirname, 'public', 'slot.html')));
+app.get('/cark', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cark.html')));
 app.get('/yonetbunlari/giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-giris.html')));
 
 app.get('/yonetbunlari', adminGerektir, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
@@ -495,6 +496,76 @@ app.get('/api/admin/slot-loglari', adminGerektir, (req, res) => {
   const limit = parseInt(req.query.limit) || 100;
   const loglar = db.prepare('SELECT * FROM slot_loglari ORDER BY id DESC LIMIT ?').all(limit);
   res.json({ basari: true, loglar });
+});
+
+// ─── ÇARK ───
+app.get('/api/cark/ayarlar', (req, res) => {
+  const carklar = db.prepare('SELECT * FROM cark_ayarlari ORDER BY id').all();
+  const parsed = carklar.map(c => ({ ...c, dilimler: JSON.parse(c.dilimler || '[]') }));
+  res.json({ basari: true, carklar: parsed });
+});
+
+app.post('/api/cark/cevir', (req, res) => {
+  if (!req.session.kullanici) return res.status(401).json({ basari: false, mesaj: 'Giris gerekli.' });
+  const { cark_id } = req.body;
+  const cark = db.prepare('SELECT * FROM cark_ayarlari WHERE id = ? AND aktif = 1').get(cark_id);
+  if (!cark) return res.json({ basari: false, mesaj: 'Cark bulunamadi veya aktif degil.' });
+
+  const k = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(req.session.kullanici.id);
+  if (!k) return res.json({ basari: false, mesaj: 'Kullanici bulunamadi.' });
+  if (k.jeton < cark.fiyat) return res.json({ basari: false, mesaj: `Yetersiz jeton. Gerekli: ${cark.fiyat}` });
+
+  let dilimler;
+  try { dilimler = JSON.parse(cark.dilimler); } catch(e) { return res.json({ basari: false, mesaj: 'Cark yapılandırma hatası.' }); }
+  if (!dilimler.length) return res.json({ basari: false, mesaj: 'Cark dilimi yok.' });
+
+  // Şans bazlı seçim
+  const toplamSans = dilimler.reduce((s, d) => s + (d.sans || 0), 0);
+  let rand = Math.random() * toplamSans;
+  let secilen = dilimler[dilimler.length - 1];
+  for (const d of dilimler) {
+    rand -= d.sans || 0;
+    if (rand <= 0) { secilen = d; break; }
+  }
+
+  // Bahsi düş
+  db.prepare('UPDATE kullanicilar SET jeton = jeton - ? WHERE id = ?').run(cark.fiyat, k.id);
+  // Kazancı ekle
+  if (secilen.jeton > 0) {
+    db.prepare('UPDATE kullanicilar SET jeton = jeton + ? WHERE id = ?').run(secilen.jeton, k.id);
+  }
+  const yeniJeton = db.prepare('SELECT jeton FROM kullanicilar WHERE id = ?').get(k.id).jeton;
+
+  // Dilim index'i bul (animasyon için)
+  const dilimIdx = dilimler.findIndex(d => d === secilen);
+
+  res.json({
+    basari: true,
+    dilim: secilen,
+    dilimIdx,
+    cark_fiyat: cark.fiyat,
+    net: secilen.jeton - cark.fiyat,
+    yeniJeton
+  });
+});
+
+// ─── ADMIN ÇARK ───
+app.get('/api/admin/cark-ayarlari', adminGerektir, (req, res) => {
+  const carklar = db.prepare('SELECT * FROM cark_ayarlari ORDER BY id').all();
+  const parsed = carklar.map(c => ({ ...c, dilimler: JSON.parse(c.dilimler || '[]') }));
+  res.json({ basari: true, carklar: parsed });
+});
+
+app.post('/api/admin/cark-ayarla', adminGerektir, (req, res) => {
+  const { id, isim, fiyat, aktif, dilimler } = req.body;
+  if (!id) return res.json({ basari: false, mesaj: 'id gerekli.' });
+  // Şans toplamı 100 olmalı
+  const toplam = (dilimler || []).reduce((s, d) => s + (parseFloat(d.sans) || 0), 0);
+  if (Math.abs(toplam - 100) > 0.01) return res.json({ basari: false, mesaj: `Sans toplami 100 olmali. Simdi: ${toplam.toFixed(1)}` });
+
+  db.prepare('UPDATE cark_ayarlari SET isim=?,fiyat=?,aktif=?,dilimler=? WHERE id=?')
+    .run(isim, parseInt(fiyat)||100, aktif?1:0, JSON.stringify(dilimler), id);
+  res.json({ basari: true, mesaj: 'Cark guncellendi.' });
 });
 
 // ─── PROMOSYON ───

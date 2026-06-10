@@ -107,6 +107,8 @@ function slotTipSec(tip, btn) {
   // Fiyatı da bilgi satırında göster
   document.getElementById('aktif-tip-goster').textContent = tip === 'plus' ? 'PLUS+' : tip.toUpperCase();
   document.getElementById('aktif-bahis-goster').textContent = (slotAyar ? slotAyar[`${tip}_fiyat`] : (tip==='normal'?50:tip==='vip'?200:500)).toLocaleString('tr-TR');
+  const btnJeton = document.getElementById('slot-btn-jeton');
+  if (btnJeton) btnJeton.textContent = `${(slotAyar ? slotAyar[`${tip}_fiyat`] : 50).toLocaleString('tr-TR')} JETON`;
 }
 
 // ─── FİYATLARI GÜNCELLE ───
@@ -116,13 +118,13 @@ function fiyatlariGuncelle() {
   document.getElementById('fiyat-vip').textContent = `${slotAyar.vip_fiyat} Jeton`;
   document.getElementById('fiyat-plus').textContent = `${slotAyar.plus_fiyat} Jeton`;
 
-  // Kilitli rozetler
   if (!slotAyar.vip_aktif) document.getElementById('vip-kilitli').style.display = 'inline';
   if (!slotAyar.plus_aktif) document.getElementById('plus-kilitli').style.display = 'inline';
 
-  // Aktif bahis güncelle
   const fiyat = slotAyar[`${aktifTip}_fiyat`];
   document.getElementById('aktif-bahis-goster').textContent = fiyat.toLocaleString('tr-TR');
+  const btnJeton = document.getElementById('slot-btn-jeton');
+  if (btnJeton) btnJeton.textContent = `${fiyat.toLocaleString('tr-TR')} JETON`;
 }
 
 // ─── ÖDEME TABLOSU ───

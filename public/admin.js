@@ -14,7 +14,8 @@ function goster(id, btn) {
     siteayar: yukleSiteAyar, loglar: yukleLoglari,
     ipler: yukleIpler, chatcanli: yukleCanliChat,
     chat: () => {}, duyuru: yukleDuyurular,
-    slotayar: yukleSlotAyar
+    slotayar: yukleSlotAyar,
+    carkayar: yukleCarkAyar
   };
   if (m[id]) m[id]();
 }
@@ -683,10 +684,155 @@ async function promoSil(id) {
   yuklePromosyonlar();
 }
 
+// ─── ÇARK AYARLARI ───
+let carkVerisi = []; // yüklenen çark verileri
+
+async function yukleCarkAyar() {
+  const r = await fetch('/api/admin/cark-ayarlari');
+  const d = await r.json();
+  if (!d.basari) return;
+  carkVerisi = d.carklar;
+
+  const liste = document.getElementById('cark-kart-liste');
+  liste.innerHTML = '';
+
+  d.carklar.forEach(cark => {
+    const renkler = { normal: 'var(--gold)', vip: '#a78bfa', plus: '#38bdf8' };
+    const renk = renkler[cark.tip] || 'var(--gold)';
+    const dilimlerHTML = cark.dilimler.map((d, i) => `
+      <div class="cark-dilim-satir" data-cark="${cark.id}" data-idx="${i}" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <input type="text" class="tablo-input cark-d-isim" value="${esc(d.isim)}" placeholder="Isim" style="flex:2;min-width:0;" />
+        <input type="number" class="tablo-input cark-d-jeton" value="${d.jeton}" min="0" placeholder="Jeton" style="width:90px;" />
+        <input type="number" class="tablo-input cark-d-sans" value="${d.sans}" min="0.1" max="100" step="0.1" placeholder="%" style="width:70px;" />
+        <span style="font-size:11px;color:var(--t3);white-space:nowrap;">%</span>
+        <button class="tbtn tbtn-red" style="flex-shrink:0;padding:0 8px;height:28px;" onclick="carkDilimSil(${cark.id},${i})">Sil</button>
+      </div>
+    `).join('');
+
+    const toplam = cark.dilimler.reduce((s, d) => s + (d.sans || 0), 0);
+
+    liste.innerHTML += `
+      <div class="admin-kart" style="margin-bottom:16px;border-top:2px solid ${renk};" id="cark-kart-${cark.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 style="margin:0;border:0;padding:0;color:${renk};">${esc(cark.isim)}</h3>
+          <span class="rozet ${cark.aktif ? 'rozet-green' : 'rozet-red'}">${cark.aktif ? 'Aktif' : 'Pasif'}</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="fg" style="margin:0;flex:1;min-width:120px;">
+            <label>Cark Adi</label>
+            <input id="cark-isim-${cark.id}" type="text" value="${esc(cark.isim)}" />
+          </div>
+          <div class="fg" style="margin:0;flex:1;min-width:100px;">
+            <label>Fiyat (Jeton)</label>
+            <input id="cark-fiyat-${cark.id}" type="number" value="${cark.fiyat}" min="1" />
+          </div>
+          <div class="fg" style="margin:0;min-width:90px;">
+            <label>Durum</label>
+            <select id="cark-aktif-${cark.id}">
+              <option value="1" ${cark.aktif ? 'selected' : ''}>Aktif</option>
+              <option value="0" ${!cark.aktif ? 'selected' : ''}>Pasif</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--t3);margin-bottom:8px;">
+          DİLİMLER &nbsp;
+          <span id="cark-toplam-${cark.id}" style="color:${Math.abs(toplam-100)<0.1?'var(--green)':'var(--red)'}">
+            Toplam: ${toplam.toFixed(1)}%
+          </span>
+        </div>
+
+        <div id="cark-dilimler-${cark.id}">
+          ${dilimlerHTML}
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+          <button class="tbtn tbtn-blue" onclick="carkDilimEkle(${cark.id})">+ Dilim Ekle</button>
+          <span style="font-size:11px;color:var(--t3);">Sans toplami 100 olmali</span>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function carkDilimEkle(carkId) {
+  const kap = document.getElementById(`cark-dilimler-${carkId}`);
+  if (!kap) return;
+  const idx = kap.querySelectorAll('.cark-dilim-satir').length;
+  const div = document.createElement('div');
+  div.className = 'cark-dilim-satir';
+  div.dataset.cark = carkId;
+  div.dataset.idx = idx;
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+  div.innerHTML = `
+    <input type="text" class="tablo-input cark-d-isim" value="YENİ ODUL" placeholder="Isim" style="flex:2;min-width:0;" />
+    <input type="number" class="tablo-input cark-d-jeton" value="0" min="0" placeholder="Jeton" style="width:90px;" />
+    <input type="number" class="tablo-input cark-d-sans" value="5" min="0.1" max="100" step="0.1" placeholder="%" style="width:70px;" />
+    <span style="font-size:11px;color:var(--t3);white-space:nowrap;">%</span>
+    <button class="tbtn tbtn-red" style="flex-shrink:0;padding:0 8px;height:28px;" onclick="this.closest('.cark-dilim-satir').remove();carkToplamGuncelle(${carkId})">Sil</button>
+  `;
+  div.querySelectorAll('.cark-d-sans').forEach(inp => inp.addEventListener('input', () => carkToplamGuncelle(carkId)));
+  kap.appendChild(div);
+  carkToplamGuncelle(carkId);
+}
+
+function carkDilimSil(carkId, idx) {
+  const kap = document.getElementById(`cark-dilimler-${carkId}`);
+  if (!kap) return;
+  const satirlar = kap.querySelectorAll('.cark-dilim-satir');
+  if (satirlar[idx]) satirlar[idx].remove();
+  carkToplamGuncelle(carkId);
+}
+
+function carkToplamGuncelle(carkId) {
+  const kap = document.getElementById(`cark-dilimler-${carkId}`);
+  const el = document.getElementById(`cark-toplam-${carkId}`);
+  if (!kap || !el) return;
+  const toplam = [...kap.querySelectorAll('.cark-d-sans')].reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+  el.textContent = `Toplam: ${toplam.toFixed(1)}%`;
+  el.style.color = Math.abs(toplam - 100) < 0.1 ? 'var(--green)' : 'var(--red)';
+}
+
+async function carkAyarKaydet() {
+  if (!carkVerisi.length) return;
+  let hata = false;
+
+  for (const cark of carkVerisi) {
+    const kap = document.getElementById(`cark-dilimler-${cark.id}`);
+    if (!kap) continue;
+    const satirlar = kap.querySelectorAll('.cark-dilim-satir');
+    const dilimler = [...satirlar].map(s => ({
+      isim:  s.querySelector('.cark-d-isim').value.trim() || 'ODUL',
+      jeton: parseInt(s.querySelector('.cark-d-jeton').value) || 0,
+      sans:  parseFloat(s.querySelector('.cark-d-sans').value) || 0
+    }));
+    const toplam = dilimler.reduce((s, d) => s + d.sans, 0);
+    if (Math.abs(toplam - 100) > 0.5) {
+      msg('cark-ayar-msg', `${cark.isim}: Sans toplami ${toplam.toFixed(1)}% (100 olmali)`, false);
+      hata = true; break;
+    }
+
+    const body = {
+      id: cark.id,
+      isim:   document.getElementById(`cark-isim-${cark.id}`).value,
+      fiyat:  document.getElementById(`cark-fiyat-${cark.id}`).value,
+      aktif:  document.getElementById(`cark-aktif-${cark.id}`).value === '1',
+      dilimler
+    };
+    const r = await fetch('/api/admin/cark-ayarla', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!d.basari) { msg('cark-ayar-msg', d.mesaj, false); hata = true; break; }
+  }
+
+  if (!hata) {
+    msg('cark-ayar-msg', 'Tum carklar kaydedildi.', true);
+    yukleCarkAyar();
+  }
+}
+
 // ─── SLOT AYARLARI ───
 async function yukleSlotAyar() {
-  const r = await fetch('/api/admin/slot-ayarlari');
-  const d = await r.json();
+  const r = await fetch('/api/admin/slot-ayarlari');  const d = await r.json();
   if (!d.basari) return;
   const a = d.ayar;
   document.getElementById('sl-normal-aktif').value = a.normal_aktif ? '1' : '0';

@@ -35,6 +35,7 @@
         <div class="anav-group-label">SİSTEM</div>
         <button class="anav-btn" onclick="goster('siteayar',this)">Site Ayarlari</button>
         <button class="anav-btn" onclick="goster('slotayar',this)">Slot Ayarlari</button>
+        <button class="anav-btn" onclick="goster('carkayar',this)">Cark Ayarlari</button>
       </nav>
       <button onclick="cikis()" class="admin-cikis-btn">Cikis</button>
     </aside>
@@ -446,6 +447,17 @@
           </table>
         </div>
         <button class="admin-btn-kucuk" style="margin-top:10px;" onclick="yukleSlotLoglari()">Logları Yükle</button>
+      </section>
+
+      <!-- CARK AYARLARI -->
+      <section id="panel-carkayar" class="admin-panel">
+        <h2 class="admin-h2">Cark Ayarlari</h2>
+        <p class="admin-aciklama" style="margin-bottom:16px;">Her carkin dilimlerini duzenleyin. <strong>Sans toplamı 100 olmali.</strong></p>
+        <div id="cark-kart-liste"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+          <button class="admin-btn-ana" onclick="carkAyarKaydet()">Tum Carklari Kaydet</button>
+          <div id="cark-ayar-msg" class="admin-msg" style="display:none;"></div>
+        </div>
       </section>
 
     </main>
