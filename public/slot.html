@@ -40,12 +40,13 @@
   </header>
 
   <!-- SONUÇ OVERLAY -->
-  <div id="slot-overlay" class="slot-overlay" style="display:none;">
-    <div class="slot-overlay-ic">
-      <div id="slot-overlay-emoji">🎰</div>
-      <div id="slot-overlay-baslik">KAZANDIN!</div>
-      <div id="slot-overlay-miktar">+0</div>
-      <div id="slot-overlay-alt">JETON</div>
+  <div id="slot-overlay" class="slot-sonuc-overlay" style="display:none;" onclick="this.style.display='none'">
+    <div class="slot-sonuc-ic">
+      <div class="slot-sonuc-sembol" id="slot-sonuc-sembol"></div>
+      <div class="slot-sonuc-label" id="slot-sonuc-label">KAZANDIN</div>
+      <div class="slot-sonuc-miktar" id="slot-sonuc-miktar">+0</div>
+      <div class="slot-sonuc-alt" id="slot-sonuc-alt">JETON</div>
+      <div style="margin-top:14px;font-size:12px;color:var(--t3);letter-spacing:.1em;">DEVAM ETMEK ICIN TIKLA</div>
     </div>
   </div>
 

@@ -433,3 +433,53 @@
   opacity: 0.75;
   letter-spacing: 0;
 }
+
+/* ─── SONUÇ OVERLAY (çark ile aynı stil) ─── */
+.slot-sonuc-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4,8,15,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+.slot-sonuc-ic {
+  text-align: center;
+  padding: 0 24px;
+  animation: slotOvZipla 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes slotOvZipla {
+  from { opacity:0; transform: scale(0.3) translateY(60px); }
+  to   { opacity:1; transform: scale(1)   translateY(0); }
+}
+.slot-sonuc-sembol {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 36px; font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  margin-bottom: 10px;
+  text-shadow: 0 0 24px rgba(240,180,41,0.5);
+}
+.slot-sonuc-label {
+  font-size: 15px; font-weight: 800;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 10px;
+  text-shadow: 0 0 16px rgba(240,180,41,0.4);
+}
+.slot-sonuc-miktar {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(52px, 14vw, 90px);
+  font-weight: 900;
+  color: var(--green);
+  text-shadow: 0 0 50px rgba(16,185,129,0.65);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.slot-sonuc-miktar.kayip {
+  color: #f87171;
+  text-shadow: 0 0 50px rgba(248,113,113,0.65);
+}
+.slot-sonuc-alt {
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.2em; color: var(--t3); margin-top: 10px;
+}

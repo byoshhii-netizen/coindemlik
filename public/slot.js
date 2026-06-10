@@ -220,10 +220,12 @@ async function slotCevir() {
         } else if (net < 0) {
           sonEl.textContent = net.toLocaleString('tr-TR');
           sonEl.style.color = 'var(--red)';
+          kayipOverlay(d.semboller, net, d.bahis);
           kayipEfekti();
         } else {
           sonEl.textContent = '±0';
           sonEl.style.color = 'var(--t2)';
+          kayipOverlay(d.semboller, 0, d.bahis);
         }
 
         ceviriyor = false;
@@ -320,19 +322,40 @@ function kayipEfekti() {
   setTimeout(() => makine.classList.remove('slot-kayip-efekt'), 500);
 }
 
+function kayipOverlay(semboller, net, bahis) {
+  const overlay = document.getElementById('slot-overlay');
+  const sembolEl = document.getElementById('slot-sonuc-sembol');
+  const labelEl  = document.getElementById('slot-sonuc-label');
+  const miktarEl = document.getElementById('slot-sonuc-miktar');
+  const altEl    = document.getElementById('slot-sonuc-alt');
+
+  if (sembolEl) sembolEl.textContent = semboller ? semboller.join('  ') : '';
+  if (labelEl)  labelEl.textContent  = net === 0 ? 'BASABASAS' : 'BU SEFER OLMADI';
+  if (miktarEl) {
+    miktarEl.textContent = net === 0 ? '±0' : `${net.toLocaleString('tr-TR')}`;
+    miktarEl.className = net === 0 ? 'slot-sonuc-miktar' : 'slot-sonuc-miktar kayip';
+  }
+  if (altEl) altEl.textContent = net === 0 ? 'JETON (BASABASAS)' : `BAHIS: ${bahis ? bahis.toLocaleString('tr-TR') : '?'} JETON`;
+
+  if (overlay) overlay.style.display = 'flex';
+}
+
 function kazanOverlay(semboller, net, carpan) {
   const overlay = document.getElementById('slot-overlay');
-  document.getElementById('slot-overlay-emoji').textContent = semboller.join('');
-  document.getElementById('slot-overlay-baslik').textContent = carpan >= 5 ? '🎉 BÜYÜK KAZANÇ!' : '✨ KAZANDIN!';
-  document.getElementById('slot-overlay-miktar').textContent = `+${net.toLocaleString('tr-TR')}`;
-  document.getElementById('slot-overlay-alt').textContent = `${carpan}x ÇARPAN — JETON`;
+  const sembolEl = document.getElementById('slot-sonuc-sembol');
+  const labelEl  = document.getElementById('slot-sonuc-label');
+  const miktarEl = document.getElementById('slot-sonuc-miktar');
+  const altEl    = document.getElementById('slot-sonuc-alt');
 
-  overlay.style.display = 'flex';
-  overlay.classList.add('overlay-gir');
-  setTimeout(() => {
-    overlay.classList.remove('overlay-gir');
-    overlay.style.display = 'none';
-  }, 2200);
+  if (sembolEl) sembolEl.textContent = semboller.join('  ');
+  if (labelEl)  labelEl.textContent  = carpan >= 5 ? 'BUYUK KAZANC' : 'KAZANDIN';
+  if (miktarEl) {
+    miktarEl.textContent = `+${net.toLocaleString('tr-TR')}`;
+    miktarEl.className = 'slot-sonuc-miktar';
+  }
+  if (altEl) altEl.textContent = `${carpan}x CARPAN — JETON`;
+
+  if (overlay) overlay.style.display = 'flex';
 }
 
 // ─── UTILS ───
