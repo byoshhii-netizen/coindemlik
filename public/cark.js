@@ -3,16 +3,15 @@ let kullanici = null;
 let carklar = [];
 let aktifCark = null;
 let donuyor = false;
-let mevcutAci = 0; // canvas üzerinde mevcut dönme açısı (radyan)
+let mevcutAci = 0;
 
-// Renk paleti — dilim renkler (emoji yok, sade)
 const DILIM_RENKLERI = [
   '#1e1e3a','#2a1f3d','#1a2a3a','#1f2d1f','#2d1f1f',
   '#1a1a2e','#2e1a2e','#1a2e1a','#2e2e1a','#1a2a2a'
 ];
 const DILIM_RENK_PARLAK = [
-  '#3d3d7a','#5a3d7a','#3d5a7a','#3d7a3d','#7a3d3d',
-  '#3d3d5a','#5a3d5a','#3d5a3d','#5a5a3d','#3d5a5a'
+  '#4a4a9a','#7a4a9a','#4a7a9a','#4a9a4a','#9a4a4a',
+  '#4a4a7a','#7a4a7a','#4a7a4a','#7a7a4a','#4a7a7a'
 ];
 
 // ─── INIT ───
@@ -73,18 +72,16 @@ function tipBarDoldur() {
 function carkSec(id) {
   aktifCark = carklar.find(c => c.id === id) || carklar[0];
   if (!aktifCark) return;
-
   document.getElementById('cark-aktif-tip').textContent = aktifCark.isim.toUpperCase();
   document.getElementById('cark-aktif-fiyat').textContent = aktifCark.fiyat.toLocaleString('tr-TR');
   const btnJeton = document.getElementById('cark-btn-jeton');
   if (btnJeton) btnJeton.textContent = `${aktifCark.fiyat.toLocaleString('tr-TR')} JETON`;
-
   mevcutAci = 0;
   carkCiz(mevcutAci);
   odulTablosunuDoldur();
 }
 
-// ─── ÇARK ÇİZ ───
+// ─── ÇARK ÇİZ — EŞİT DİLİMLER ───
 function carkCiz(donmusAci) {
   const canvas = document.getElementById('cark-canvas');
   if (!canvas || !aktifCark) return;
@@ -98,92 +95,83 @@ function carkCiz(donmusAci) {
   const dilimler = aktifCark.dilimler;
   if (!dilimler || dilimler.length === 0) return;
 
-  const toplamSans = dilimler.reduce((s, d) => s + (d.sans || 0), 0);
-  let baslangicAci = donmusAci - Math.PI / 2;
+  // HER DİLİM EŞİT AÇIDA — görsel olarak
+  const n = dilimler.length;
+  const dilimAci = (2 * Math.PI) / n;
 
-  // ─── DİLİMLERİ ÇİZ ───
-  dilimler.forEach((d, i) => {
-    const dilimAci = (d.sans / toplamSans) * 2 * Math.PI;
-    const bitisAci = baslangicAci + dilimAci;
+  // 1. Önce tüm dilim alanlarını çiz
+  for (let i = 0; i < n; i++) {
+    const bas = donmusAci - Math.PI / 2 + i * dilimAci;
+    const bit = bas + dilimAci;
     const renk = DILIM_RENKLERI[i % DILIM_RENKLERI.length];
-    const renkParlak = DILIM_RENK_PARLAK[i % DILIM_RENK_PARLAK.length];
+    const parlak = DILIM_RENK_PARLAK[i % DILIM_RENK_PARLAK.length];
+    const ortaAci = bas + dilimAci / 2;
 
-    // Alan
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, baslangicAci, bitisAci);
+    ctx.arc(cx, cy, r, bas, bit);
     ctx.closePath();
-    const gradX = cx + Math.cos(baslangicAci + dilimAci / 2) * r * 0.5;
-    const gradY = cy + Math.sin(baslangicAci + dilimAci / 2) * r * 0.5;
-    const grad = ctx.createRadialGradient(gradX, gradY, 0, cx, cy, r);
-    grad.addColorStop(0, renkParlak);
+
+    const grad = ctx.createRadialGradient(
+      cx + Math.cos(ortaAci) * r * 0.4,
+      cy + Math.sin(ortaAci) * r * 0.4,
+      0, cx, cy, r
+    );
+    grad.addColorStop(0, parlak);
     grad.addColorStop(1, renk);
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 2;
     ctx.stroke();
+  }
 
-    baslangicAci = bitisAci;
-  });
+  // 2. Metinleri çiz — dilim ortasına, radyal yönde
+  for (let i = 0; i < n; i++) {
+    const bas = donmusAci - Math.PI / 2 + i * dilimAci;
+    const ortaAci = bas + dilimAci / 2;
+    const d = dilimler[i];
 
-  // ─── METİNLERİ ÇİZ (sabit font, okunabilir yön) ───
-  let metin_aci = donmusAci - Math.PI / 2;
-  dilimler.forEach((d, i) => {
-    const dilimAci = (d.sans / toplamSans) * 2 * Math.PI;
-    const ortaAci = metin_aci + dilimAci / 2;
-
-    // Metin yarıçapı — merkez daireden uzak tut
-    const textR = r * 0.62;
+    const textR = r * 0.63;
     const tx = cx + Math.cos(ortaAci) * textR;
     const ty = cy + Math.sin(ortaAci) * textR;
 
     ctx.save();
     ctx.translate(tx, ty);
-
-    // Okunabilir yön: sağ yarıda normal, sol yarıda ters çevir
-    const normalYon = Math.cos(ortaAci) >= 0;
-    ctx.rotate(ortaAci + (normalYon ? -Math.PI / 2 : Math.PI / 2));
-
+    // Merkez dışa bak, her zaman yukarı dönük
+    ctx.rotate(ortaAci + Math.PI / 2);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(0,0,0,0.95)';
+    ctx.shadowBlur = 5;
 
-    // Dilim genişliğine göre metin uzunluğunu sınırla
-    const maxKarakter = dilimAci > 0.7 ? 10 : dilimAci > 0.35 ? 7 : 4;
-    const kisaIsim = d.isim.length > maxKarakter ? d.isim.substring(0, maxKarakter) : d.isim;
+    const isIflas = d.iflas || (d.isim && d.isim.toUpperCase().includes('IFLAS'));
+    ctx.fillStyle = isIflas ? '#f87171' : '#ffffff';
+    ctx.font = '800 12px Inter, sans-serif';
+    ctx.fillText(d.isim, 0, -6);
 
-    // Sabit 13px — hepsi aynı boyut
-    ctx.font = '700 13px Inter, sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(kisaIsim, 0, dilimAci > 0.35 ? -6 : 0);
-
-    // Şans yüzdesi — sadece yeterli alan varsa
-    if (dilimAci > 0.35) {
-      ctx.font = '600 10px JetBrains Mono, monospace';
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillText(`%${d.sans}`, 0, 8);
-    }
+    ctx.font = '600 10px JetBrains Mono, monospace';
+    ctx.fillStyle = isIflas ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.65)';
+    const altMetin = d.jeton > 0 ? `+${d.jeton.toLocaleString('tr-TR')}` : (isIflas ? `-${d.jeton}` : '--');
+    ctx.fillText(altMetin, 0, 7);
 
     ctx.shadowBlur = 0;
     ctx.restore();
-    metin_aci += dilimAci;
-  });
+  }
 
-  // Dış halka
+  // 3. Dış halka
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  // İç daire
+  // 4. İç daire
   ctx.beginPath();
-  ctx.arc(cx, cy, 30, 0, 2 * Math.PI);
+  ctx.arc(cx, cy, 32, 0, 2 * Math.PI);
   ctx.fillStyle = '#0d0d1a';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
   ctx.lineWidth = 2;
   ctx.stroke();
 }
@@ -204,7 +192,6 @@ async function carkCevir() {
   btn.disabled = true;
   document.getElementById('cark-btn-icerik').textContent = 'DONUYOR...';
 
-  // Optimistik düşme
   kullanici.jeton -= aktifCark.fiyat;
   document.getElementById('jeton-miktar').textContent = kullanici.jeton.toLocaleString('tr-TR');
 
@@ -226,21 +213,16 @@ async function carkCevir() {
       return;
     }
 
-    // Hedef dilim açısını hesapla
-    const dilimler = aktifCark.dilimler;
-    const toplamSans = dilimler.reduce((s, dd) => s + (dd.sans || 0), 0);
-    let dilimBasAci = 0;
-    for (let i = 0; i < d.dilimIdx; i++) {
-      dilimBasAci += (dilimler[i].sans / toplamSans) * 2 * Math.PI;
-    }
-    const dilimOrtaAci = dilimBasAci + (dilimler[d.dilimIdx].sans / toplamSans) * Math.PI;
-
-    // 5-8 tam tur + hedef dilim ortası
-    const turSayisi = 5 + Math.floor(Math.random() * 3);
+    // Eşit dilim açısı ile hedef hesapla
+    const n = aktifCark.dilimler.length;
+    const dilimAci = (2 * Math.PI) / n;
+    // Hedef dilim ortası
+    const dilimOrtaAci = (d.dilimIdx + 0.5) * dilimAci;
+    // 5-8 tur + hedefe git
+    const turSayisi = 5 + Math.floor(Math.random() * 4);
     const hedefAci = turSayisi * 2 * Math.PI - dilimOrtaAci;
 
     animasyonBaslat(hedefAci, () => {
-      // Sonuç
       kullanici.jeton = d.yeniJeton;
       document.getElementById('jeton-miktar').textContent = d.yeniJeton.toLocaleString('tr-TR');
 
@@ -278,14 +260,15 @@ async function carkCevir() {
 let animId = null;
 
 function animasyonBaslat(hedefAci, callback) {
-  const sure = 4000;
+  const sure = 4500;
   const baslangic = performance.now();
   const baslangicAci = mevcutAci;
 
   function adim(now) {
     const gecen = now - baslangic;
     const t = Math.min(gecen / sure, 1);
-    const ease = 1 - Math.pow(1 - t, 3);
+    // Ease out quart — daha akıcı yavaşlama
+    const ease = 1 - Math.pow(1 - t, 4);
     mevcutAci = baslangicAci + hedefAci * ease;
     carkCiz(mevcutAci);
     if (t < 1) {
@@ -293,13 +276,13 @@ function animasyonBaslat(hedefAci, callback) {
     } else {
       mevcutAci = baslangicAci + hedefAci;
       carkCiz(mevcutAci);
-      if (callback) setTimeout(callback, 200);
+      if (callback) setTimeout(callback, 250);
     }
   }
   animId = requestAnimationFrame(adim);
 }
 
-// ─── EFEKTLER ───
+// ─── OVERLAY'LER ───
 function kazanOverlay(dilim, net) {
   const el = document.getElementById('cark-overlay');
   const miktar = document.getElementById('cark-ov-miktar');
@@ -316,7 +299,7 @@ function kayipOverlay(carkFiyat) {
   document.getElementById('cark-ov-label').textContent = 'BU SEFER OLMADI';
   miktar.textContent = `-${carkFiyat.toLocaleString('tr-TR')}`;
   miktar.className = 'cark-overlay-miktar kayip';
-  document.getElementById('cark-ov-alt').textContent = 'JETON GITDI';
+  document.getElementById('cark-ov-alt').textContent = 'JETON GITTI';
   el.style.display = 'flex';
 }
 
@@ -342,13 +325,16 @@ function kayipEfekti() {
 function odulTablosunuDoldur() {
   const el = document.getElementById('cark-odul-tablo');
   if (!el || !aktifCark) return;
-  el.innerHTML = aktifCark.dilimler.map((d, i) => `
-    <div class="cark-odul-satir" style="--d-renk:${DILIM_RENK_PARLAK[i % DILIM_RENK_PARLAK.length]}">
-      <span class="cark-odul-isim">${d.isim}</span>
-      <span class="cark-odul-jeton mono">${d.jeton > 0 ? d.jeton.toLocaleString('tr-TR') + ' J' : '—'}</span>
-      <span class="cark-odul-sans">%${d.sans}</span>
-    </div>
-  `).join('');
+  el.innerHTML = aktifCark.dilimler.map((d, i) => {
+    const isIflas = d.iflas || (d.isim && d.isim.toUpperCase().includes('IFLAS'));
+    return `
+      <div class="cark-odul-satir" style="--d-renk:${DILIM_RENK_PARLAK[i % DILIM_RENK_PARLAK.length]}">
+        <span class="cark-odul-isim" style="${isIflas ? 'color:#f87171;' : ''}">${d.isim}</span>
+        <span class="cark-odul-jeton mono">${d.jeton > 0 ? '+' + d.jeton.toLocaleString('tr-TR') + ' J' : (isIflas ? '-' + d.jeton + ' J' : '—')}</span>
+        <span class="cark-odul-sans">%${d.sans}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 // ─── UTILS ───
