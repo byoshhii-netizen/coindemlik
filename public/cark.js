@@ -127,38 +127,46 @@ function carkCiz(donmusAci) {
     baslangicAci = bitisAci;
   });
 
-  // ─── METİNLERİ ÇİZ (dilim döndürme yerine mutlak koordinat) ───
+  // ─── METİNLERİ ÇİZ (sabit font, okunabilir yön) ───
   let metin_aci = donmusAci - Math.PI / 2;
   dilimler.forEach((d, i) => {
     const dilimAci = (d.sans / toplamSans) * 2 * Math.PI;
     const ortaAci = metin_aci + dilimAci / 2;
-    const textR = r * 0.60;
+
+    // Metin yarıçapı — merkez daireden uzak tut
+    const textR = r * 0.62;
     const tx = cx + Math.cos(ortaAci) * textR;
     const ty = cy + Math.sin(ortaAci) * textR;
 
     ctx.save();
     ctx.translate(tx, ty);
-    // Metni okunabilir yönde tut — sağ yarıda normal, sol yarıda 180° çevir
-    const normalMi = ortaAci > -Math.PI / 2 && ortaAci < Math.PI / 2;
-    ctx.rotate(ortaAci + (normalMi ? 0 : Math.PI));
+
+    // Okunabilir yön: sağ yarıda normal, sol yarıda ters çevir
+    const normalYon = Math.cos(ortaAci) >= 0;
+    ctx.rotate(ortaAci + (normalYon ? -Math.PI / 2 : Math.PI / 2));
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
 
-    // Başlık
-    const fontSize = dilimAci > 0.6 ? 13 : dilimAci > 0.35 ? 11 : 9;
-    ctx.font = `700 ${fontSize}px Inter, sans-serif`;
+    // Dilim genişliğine göre metin uzunluğunu sınırla
+    const maxKarakter = dilimAci > 0.7 ? 10 : dilimAci > 0.35 ? 7 : 4;
+    const kisaIsim = d.isim.length > maxKarakter ? d.isim.substring(0, maxKarakter) : d.isim;
+
+    // Sabit 13px — hepsi aynı boyut
+    ctx.font = '700 13px Inter, sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 3;
-    ctx.fillText(d.isim, 0, -7);
+    ctx.fillText(kisaIsim, 0, dilimAci > 0.35 ? -6 : 0);
 
-    // Şans yüzdesi
-    ctx.font = `600 ${Math.max(8, fontSize - 2)}px JetBrains Mono, monospace`;
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.fillText(`%${d.sans}`, 0, 8);
+    // Şans yüzdesi — sadece yeterli alan varsa
+    if (dilimAci > 0.35) {
+      ctx.font = '600 10px JetBrains Mono, monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText(`%${d.sans}`, 0, 8);
+    }
+
     ctx.shadowBlur = 0;
-
     ctx.restore();
     metin_aci += dilimAci;
   });
@@ -248,7 +256,7 @@ async function carkCevir() {
       } else {
         sonEl.textContent = `-${d.cark_fiyat.toLocaleString('tr-TR')}`;
         sonEl.style.color = 'var(--red)';
-        kayipEfekti();
+        kayipOverlay(d.cark_fiyat);
       }
 
       donuyor = false;
@@ -294,30 +302,32 @@ function animasyonBaslat(hedefAci, callback) {
 // ─── EFEKTLER ───
 function kazanOverlay(dilim, net) {
   const el = document.getElementById('cark-overlay');
+  const miktar = document.getElementById('cark-ov-miktar');
   document.getElementById('cark-ov-label').textContent = dilim.isim;
-  document.getElementById('cark-ov-miktar').textContent = `+${net.toLocaleString('tr-TR')}`;
+  miktar.textContent = `+${net.toLocaleString('tr-TR')}`;
+  miktar.className = 'cark-overlay-miktar';
   document.getElementById('cark-ov-alt').textContent = 'JETON KAZANDIN';
   el.style.display = 'flex';
-  el.style.animation = 'none';
-  void el.offsetWidth;
-  el.style.animation = '';
-  setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+function kayipOverlay(carkFiyat) {
+  const el = document.getElementById('cark-overlay');
+  const miktar = document.getElementById('cark-ov-miktar');
+  document.getElementById('cark-ov-label').textContent = 'BU SEFER OLMADI';
+  miktar.textContent = `-${carkFiyat.toLocaleString('tr-TR')}`;
+  miktar.className = 'cark-overlay-miktar kayip';
+  document.getElementById('cark-ov-alt').textContent = 'JETON GITDI';
+  el.style.display = 'flex';
 }
 
 function iflasOverlay(iflasKayip, carkFiyat) {
   const el = document.getElementById('cark-overlay');
+  const miktar = document.getElementById('cark-ov-miktar');
   document.getElementById('cark-ov-label').textContent = 'IFLAS';
-  document.getElementById('cark-ov-miktar').textContent = `-${(carkFiyat + iflasKayip).toLocaleString('tr-TR')}`;
-  document.getElementById('cark-ov-miktar').style.color = '#f87171';
+  miktar.textContent = `-${(carkFiyat + iflasKayip).toLocaleString('tr-TR')}`;
+  miktar.className = 'cark-overlay-miktar kayip';
   document.getElementById('cark-ov-alt').textContent = `CARK (${carkFiyat.toLocaleString('tr-TR')}) + CEZA (${iflasKayip.toLocaleString('tr-TR')}) JETON`;
   el.style.display = 'flex';
-  el.style.animation = 'none';
-  void el.offsetWidth;
-  el.style.animation = '';
-  setTimeout(() => {
-    document.getElementById('cark-ov-miktar').style.color = '';
-    el.style.display = 'none';
-  }, 3000);
   kayipEfekti();
 }
 

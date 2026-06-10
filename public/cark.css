@@ -185,34 +185,42 @@
 .cark-overlay {
   position: fixed; inset: 0; z-index: 9999;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(4,8,15,0.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  animation: carkOvAc 0.25s ease;
+  background: rgba(4,8,15,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
 }
 @keyframes carkOvAc { from{opacity:0} to{opacity:1} }
 .cark-overlay-ic {
   text-align: center;
-  animation: carkOvZipla 0.45s cubic-bezier(0.34,1.56,0.64,1);
+  padding: 0 24px;
+  animation: carkOvZipla 0.5s cubic-bezier(0.34,1.56,0.64,1);
 }
 @keyframes carkOvZipla {
-  from { opacity:0; transform: scale(0.3) translateY(50px); }
+  from { opacity:0; transform: scale(0.3) translateY(60px); }
   to   { opacity:1; transform: scale(1)   translateY(0); }
 }
 .cark-overlay-label {
-  font-size: 14px; font-weight: 800; letter-spacing: 0.15em;
-  color: var(--gold); text-transform: uppercase; margin-bottom: 8px;
+  font-size: 16px; font-weight: 800; letter-spacing: 0.2em;
+  color: var(--gold); text-transform: uppercase; margin-bottom: 12px;
+  text-shadow: 0 0 20px rgba(240,180,41,0.5);
 }
 .cark-overlay-miktar {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 60px; font-weight: 900;
+  font-size: clamp(52px, 14vw, 90px);
+  font-weight: 900;
   color: var(--green);
-  text-shadow: 0 0 40px rgba(16,185,129,0.6);
-  letter-spacing: -0.03em; line-height: 1;
+  text-shadow: 0 0 50px rgba(16,185,129,0.65);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.cark-overlay-miktar.kayip {
+  color: #f87171;
+  text-shadow: 0 0 50px rgba(248,113,113,0.65);
 }
 .cark-overlay-alt {
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.2em; color: var(--t3); margin-top: 8px;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 0.2em; color: var(--t3); margin-top: 10px;
 }
 
 /* ─── ÖDÜL TABLOSU ─── */
