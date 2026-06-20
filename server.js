@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3001;
-const ADMIN_SIFRE = 'kazyontuyozazyontuyozgardas';
+const ADMIN_SIFRE = process.env.ADMIN_SIFRE || 'kazyontuyozazyontuyozgardas';
 
 const NICK_RENKLERI = [
   '#e879f9','#a78bfa','#60a5fa','#34d399','#fbbf24',
