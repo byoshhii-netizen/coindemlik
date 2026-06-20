@@ -118,6 +118,10 @@ app.get('/api/grafik-durumu', (req, res) => {
   res.json({ mevcutDeger: grafik.mevcutDegerAl(), gecmis: grafik.gecmisAl(), turBitis: grafik.turBitisAl() });
 });
 
+app.get('/api/tursuz-grafik-durumu', (req, res) => {
+  res.json({ mevcutDeger: grafik.tursuzDegerAl(), gecmis: grafik.tursuzGecmisAl() });
+});
+
 app.get('/api/site-ayarlari', (req, res) => {
   const ayar = db.prepare('SELECT * FROM site_ayarlari WHERE id = 1').get();
   res.json({ basari: true, ayar: ayar || { coin_ismi: 'DemliCoin', coin_kisaltma: 'DC', min_bahis: 150 } });
@@ -448,6 +452,8 @@ app.post('/api/slot/cevir', (req, res) => {
       .run(k.id, k.nick, tip, fiyat, sonuc.semboller.join(','), kazanc - fiyat);
   } catch(e) {}
 
+  io.emit('jeton_guncelle', { kullanici_id: k.id, jeton: yeniJeton });
+
   res.json({
     basari: true,
     semboller: sonuc.semboller,
@@ -554,6 +560,8 @@ app.post('/api/cark/cevir', (req, res) => {
   let net = secilen.jeton - cark.fiyat;
   if (iflasKayip > 0) net = -(cark.fiyat + iflasKayip);
 
+  io.emit('jeton_guncelle', { kullanici_id: k.id, jeton: yeniJeton });
+
   res.json({
     basari: true,
     dilim: secilen,
@@ -627,6 +635,20 @@ app.post('/api/admin/grafik-ayar', adminGerektir, (req, res) => {
 app.get('/api/admin/grafik-ayar-yukle', adminGerektir, (req, res) => {
   const ayar = db.prepare('SELECT * FROM grafik_ayarlari WHERE id = 1').get();
   res.json({ basari: true, ayar: ayar || {} });
+});
+
+// ─── TURSUZ GRAFİK ADMIN ───
+app.get('/api/admin/tursuz-grafik-ayar-yukle', adminGerektir, (req, res) => {
+  const ayar = db.prepare('SELECT * FROM grafik_tursuz_ayar WHERE id = 1').get();
+  res.json({ basari: true, ayar: ayar || {} });
+});
+
+app.post('/api/admin/tursuz-grafik-ayar', adminGerektir, (req, res) => {
+  const { aktif, guncelleme_suresi, min_deger, max_deger, artma_orani, max_degisim } = req.body;
+  db.prepare(`UPDATE grafik_tursuz_ayar SET aktif=?,guncelleme_suresi=?,min_deger=?,max_deger=?,artma_orani=?,max_degisim=? WHERE id=1`)
+    .run(aktif ? 1 : 0, guncelleme_suresi || 3000, min_deger || 50, max_deger || 500, artma_orani || 0.55, max_degisim || 40);
+  grafik.tursuzAyarGuncelle();
+  res.json({ basari: true, mesaj: 'Tursuz grafik ayarlari guncellendi.' });
 });
 
 app.get('/api/admin/oyuncular', adminGerektir, (req, res) => {
@@ -795,6 +817,8 @@ io.on('connection', (socket) => {
     socket.kullanici = k;
     socket.join('oyun');
     socket.emit('grafik_guncelle', { deger: grafik.mevcutDegerAl(), zaman: Date.now(), gecmis: grafik.gecmisAl(), turBitis: grafik.turBitisAl() });
+    // Tursuz grafik başlangıç verisi
+    socket.emit('tursuz_grafik_guncelle', { deger: grafik.tursuzDegerAl(), zaman: Date.now(), gecmis: grafik.tursuzGecmisAl() });
     // Aktif duyuruları gönder
     const duyurular = db.prepare('SELECT * FROM duyurular WHERE aktif = 1 ORDER BY id DESC').all();
     if (duyurular.length) socket.emit('mevcut_duyurular', duyurular);

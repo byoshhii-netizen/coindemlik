@@ -8,6 +8,7 @@ function goster(id, btn) {
   btn.classList.add('aktif');
   const m = {
     grafik: yukleGrafikAyar,
+    tursuzgrafik: yukleTursuzGrafikAyar,
     oyuncular: yukleOyuncular, botlar: yukleBotlar,
     itemlar: yukleItemlar, paketler: yuklePaketler,
     parakopar: yukleParaKopar, promosyon: yuklePromosyonlar,
@@ -926,6 +927,123 @@ async function siteAyarKaydet() {
   const r = await fetch('/api/admin/site-ayarlari', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json();
   msg('sa-msg', d.mesaj || (d.basari ? 'Kaydedildi' : 'Hata'), d.basari);
+}
+
+// ─── TURSUZ GRAFİK ADMIN ───
+let tursuzAdmCanvas = null, tursuzAdmCtx = null;
+let tursuzAdmGecmis = [];
+
+function tursuzGrafikAdmBaslat() {
+  tursuzAdmCanvas = document.getElementById('adm-tursuz-grafik-canvas');
+  if (!tursuzAdmCanvas) return;
+  tursuzAdmCanvas.width = tursuzAdmCanvas.parentElement.clientWidth;
+  tursuzAdmCanvas.height = 160;
+  tursuzAdmCtx = tursuzAdmCanvas.getContext('2d');
+
+  const socket = io();
+  socket.on('tursuz_grafik_guncelle', (data) => {
+    tursuzAdmGecmis = data.gecmis || [];
+    const el = document.getElementById('adm-tursuz-canli-deger');
+    if (el) el.textContent = data.deger.toFixed(2);
+    tursuzGrafikAdmCiz();
+  });
+
+  window.addEventListener('resize', () => {
+    if (!tursuzAdmCanvas) return;
+    tursuzAdmCanvas.width = tursuzAdmCanvas.parentElement.clientWidth;
+    tursuzGrafikAdmCiz();
+  });
+}
+
+function tursuzGrafikAdmCiz() {
+  if (!tursuzAdmCanvas || !tursuzAdmCtx || tursuzAdmGecmis.length < 2) return;
+  const w = tursuzAdmCanvas.width, h = tursuzAdmCanvas.height;
+  tursuzAdmCtx.clearRect(0, 0, w, h);
+  const degerler = tursuzAdmGecmis.map(g => g.deger);
+  const minD = Math.min(...degerler) * 0.93;
+  const maxD = Math.max(...degerler) * 1.07;
+  const aralik = maxD - minD || 1;
+  const padL = 52, padR = 10, padT = 14, padB = 28;
+  const gW = w - padL - padR, gH = h - padT - padB;
+  const rgb = '56,189,248';
+
+  tursuzAdmCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+  tursuzAdmCtx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (gH / 4) * i;
+    tursuzAdmCtx.beginPath(); tursuzAdmCtx.moveTo(padL, y); tursuzAdmCtx.lineTo(padL + gW, y); tursuzAdmCtx.stroke();
+    tursuzAdmCtx.fillStyle = 'rgba(255,255,255,0.35)';
+    tursuzAdmCtx.font = '600 11px JetBrains Mono, monospace';
+    tursuzAdmCtx.textAlign = 'right';
+    tursuzAdmCtx.fillText((maxD - (aralik / 4) * i).toFixed(0), padL - 6, y + 4);
+  }
+
+  const grad = tursuzAdmCtx.createLinearGradient(0, padT, 0, padT + gH);
+  grad.addColorStop(0, `rgba(${rgb},0.22)`);
+  grad.addColorStop(1, `rgba(${rgb},0.01)`);
+  tursuzAdmCtx.beginPath();
+  tursuzAdmGecmis.forEach((p, i) => {
+    const x = padL + (i / (tursuzAdmGecmis.length - 1)) * gW;
+    const y = padT + gH - ((p.deger - minD) / aralik) * gH;
+    i === 0 ? tursuzAdmCtx.moveTo(x, y) : tursuzAdmCtx.lineTo(x, y);
+  });
+  const sonD = degerler[degerler.length - 1];
+  tursuzAdmCtx.lineTo(padL + gW, padT + gH); tursuzAdmCtx.lineTo(padL, padT + gH); tursuzAdmCtx.closePath();
+  tursuzAdmCtx.fillStyle = grad; tursuzAdmCtx.fill();
+
+  tursuzAdmCtx.beginPath();
+  tursuzAdmCtx.strokeStyle = `rgb(${rgb})`; tursuzAdmCtx.lineWidth = 2.5;
+  tursuzAdmCtx.lineJoin = 'round'; tursuzAdmCtx.lineCap = 'round';
+  tursuzAdmGecmis.forEach((p, i) => {
+    const x = padL + (i / (tursuzAdmGecmis.length - 1)) * gW;
+    const y = padT + gH - ((p.deger - minD) / aralik) * gH;
+    i === 0 ? tursuzAdmCtx.moveTo(x, y) : tursuzAdmCtx.lineTo(x, y);
+  });
+  tursuzAdmCtx.stroke();
+
+  const lastX = padL + gW;
+  const lastY = padT + gH - ((sonD - minD) / aralik) * gH;
+  tursuzAdmCtx.beginPath(); tursuzAdmCtx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+  tursuzAdmCtx.fillStyle = `rgb(${rgb})`; tursuzAdmCtx.fill();
+  tursuzAdmCtx.strokeStyle = 'rgba(255,255,255,0.6)'; tursuzAdmCtx.lineWidth = 2; tursuzAdmCtx.stroke();
+
+  tursuzAdmCtx.fillStyle = `rgba(${rgb},0.9)`;
+  tursuzAdmCtx.fillRect(lastX + 6, lastY - 10, 52, 20);
+  tursuzAdmCtx.fillStyle = '#fff';
+  tursuzAdmCtx.font = '700 11px JetBrains Mono, monospace';
+  tursuzAdmCtx.textAlign = 'left';
+  tursuzAdmCtx.fillText(sonD.toFixed(1), lastX + 10, lastY + 4);
+}
+
+async function yukleTursuzGrafikAyar() {
+  const r = await fetch('/api/admin/tursuz-grafik-ayar-yukle');
+  if (!r.ok) return;
+  const d = await r.json();
+  if (!d.basari) return;
+  const a = d.ayar;
+  const el = (id) => document.getElementById(id);
+  if (el('tg-aktif')) el('tg-aktif').value = a.aktif ? '1' : '0';
+  if (el('tg-sure')) el('tg-sure').value = a.guncelleme_suresi || 3000;
+  if (el('tg-artma')) el('tg-artma').value = a.artma_orani !== undefined ? a.artma_orani : 0.55;
+  if (el('tg-degisim')) el('tg-degisim').value = a.max_degisim || 40;
+  if (el('tg-min')) el('tg-min').value = a.min_deger || 50;
+  if (el('tg-max')) el('tg-max').value = a.max_deger || 500;
+  // Canvas başlat
+  if (!tursuzAdmCanvas) tursuzGrafikAdmBaslat();
+}
+
+async function tursuzGrafigKaydet() {
+  const body = {
+    aktif: document.getElementById('tg-aktif').value === '1',
+    guncelleme_suresi: parseInt(document.getElementById('tg-sure').value),
+    min_deger: parseFloat(document.getElementById('tg-min').value) || 50,
+    max_deger: parseFloat(document.getElementById('tg-max').value) || 500,
+    artma_orani: parseFloat(document.getElementById('tg-artma').value),
+    max_degisim: parseInt(document.getElementById('tg-degisim').value)
+  };
+  const r = await fetch('/api/admin/tursuz-grafik-ayar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json();
+  msg('tursuz-grafik-msg', d.mesaj || (d.basari ? 'Kaydedildi' : 'Hata'), d.basari);
 }
 
 // ─── UTILS ───

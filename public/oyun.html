@@ -92,17 +92,46 @@
           </div>
         </a>
 
-        <!-- GRAFİK -->
-        <div class="grafik-kart">
+        <!-- GRAFİK MODLARI -->
+        <div class="grafik-mod-tabs">
+          <button class="grafik-mod-btn grafik-mod-aktif" onclick="grafikModSec('turlu', this)">
+            <span class="grafik-mod-dot grafik-mod-dot-turlu"></span>
+            TURLU
+          </button>
+          <button class="grafik-mod-btn" onclick="grafikModSec('tursuz', this)">
+            <span class="grafik-mod-dot grafik-mod-dot-tursuz"></span>
+            TURSUZ
+          </button>
+        </div>
+
+        <!-- TURLU GRAFİK -->
+        <div id="grafik-turlu-wrap" class="grafik-kart">
           <div class="grafik-header">
             <div class="grafik-sol">
               <span class="grafik-sembol" id="grafik-sembol">DC / JETON</span>
               <span class="grafik-canli-dot"></span>
               <span class="grafik-canli-text">CANLI</span>
             </div>
-            <span id="grafik-deger" class="canli-deger mono deger-yesil">—</span>
+            <span id="grafik-deger" class="canli-deger mono deger-cay">—</span>
           </div>
           <canvas id="grafik-canvas"></canvas>
+        </div>
+
+        <!-- TURSUZ GRAFİK -->
+        <div id="grafik-tursuz-wrap" class="grafik-kart" style="display:none;">
+          <div class="grafik-header">
+            <div class="grafik-sol">
+              <span class="grafik-sembol" id="tursuz-grafik-sembol">DC / JETON · SERBEST</span>
+              <span class="grafik-canli-dot" style="background:#38bdf8;box-shadow:0 0 6px #38bdf8;"></span>
+              <span class="grafik-canli-text" style="color:#38bdf8;">CANLI</span>
+            </div>
+            <span id="tursuz-grafik-deger" class="canli-deger mono" style="color:#38bdf8;">—</span>
+          </div>
+          <canvas id="tursuz-grafik-canvas"></canvas>
+          <div class="tursuz-bilgi-bar">
+            <span class="tursuz-bilgi-icon">ℹ</span>
+            <span>Bu grafik tur sisteminden bağımsız, sürekli akar. Bahis yapılamaz.</span>
+          </div>
         </div>
 
         <!-- BAHİS PANELİ -->

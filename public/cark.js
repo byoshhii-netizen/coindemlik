@@ -5,6 +5,19 @@ let aktifCark = null;
 let donuyor = false;
 let mevcutAci = 0;
 
+// Socket bağlantısı — jeton senkronizasyonu
+let socket;
+try {
+  socket = io();
+  socket.on('jeton_guncelle', (data) => {
+    if (kullanici && data.kullanici_id === kullanici.id) {
+      kullanici.jeton = data.jeton;
+      const el = document.getElementById('jeton-miktar');
+      if (el) el.textContent = data.jeton.toLocaleString('tr-TR');
+    }
+  });
+} catch(e) { socket = { on: () => {}, emit: () => {} }; }
+
 const DILIM_RENKLERI = [
   '#1e1e3a','#2a1f3d','#1a2a3a','#1f2d1f','#2d1f1f',
   '#1a1a2e','#2e1a2e','#1a2e1a','#2e2e1a','#1a2a2a'

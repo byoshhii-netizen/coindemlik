@@ -17,6 +17,15 @@ let eskiGecmis = [];
 let turBitis = null;
 let turInterval = null;
 
+// Tursuz grafik
+let tursuzCanvas, tursuzCtx;
+let tursuzGecmis = [];
+let tursuzHedefGecmis = [];
+let tursuzEskiGecmis = [];
+let tursuzAnimFrame = null;
+let tursuzAnimBaslangic = null;
+let aktifGrafikMod = 'turlu'; // 'turlu' | 'tursuz'
+
 // ─── SAĞ ALT BİLDİRİM ───
 function sagAltBildirim(mesaj, tip, sure) {
   sure = sure || 3500;
@@ -73,6 +82,14 @@ async function init() {
   boyutlandirCanvas();
   window.addEventListener('resize', boyutlandirCanvas);
 
+  // Tursuz grafik canvas
+  tursuzCanvas = document.getElementById('tursuz-grafik-canvas');
+  if (tursuzCanvas) {
+    tursuzCtx = tursuzCanvas.getContext('2d');
+    boyutlandirTursuzCanvas();
+    window.addEventListener('resize', boyutlandirTursuzCanvas);
+  }
+
   try {
     const gr = await fetch('/api/grafik-durumu');
     const gd = await gr.json();
@@ -81,6 +98,17 @@ async function init() {
     mevcutDegerGuncelle(gd.mevcutDeger);
     if (gd.turBitis) { turBitis = gd.turBitis; turSayacBaslat(); }
     grafikCiz();
+  } catch(e) {}
+
+  // Tursuz grafik başlangıç verisi
+  try {
+    const tr = await fetch('/api/tursuz-grafik-durumu');
+    const td = await tr.json();
+    tursuzGecmis = td.gecmis || [];
+    tursuzHedefGecmis = tursuzGecmis.slice();
+    const el = document.getElementById('tursuz-grafik-deger');
+    if (el) el.textContent = td.mevcutDeger.toFixed(2);
+    tursuzGrafikCiz();
   } catch(e) {}
 
   if (kullanici) {
@@ -155,6 +183,42 @@ function boyutlandirCanvas() {
   grafikCiz();
 }
 
+function boyutlandirTursuzCanvas() {
+  if (!tursuzCanvas) return;
+  tursuzCanvas.width = tursuzCanvas.parentElement.clientWidth;
+  tursuzCanvas.height = window.innerWidth < 640 ? 180 : 260;
+  tursuzGrafikCiz();
+}
+
+// ─── GRAFİK MOD SEÇ ───
+function grafikModSec(mod, btn) {
+  aktifGrafikMod = mod;
+  document.querySelectorAll('.grafik-mod-btn').forEach(b => b.classList.remove('grafik-mod-aktif'));
+  btn.classList.add('grafik-mod-aktif');
+
+  const turluWrap = document.getElementById('grafik-turlu-wrap');
+  const tursuzWrap = document.getElementById('grafik-tursuz-wrap');
+  const bahisPanel = document.getElementById('bahis-panel');
+  const girisUyari = document.getElementById('giris-uyari');
+  const turSayacWrap = document.querySelector('.tur-sayac-wrap');
+
+  if (mod === 'tursuz') {
+    if (turluWrap) turluWrap.style.display = 'none';
+    if (tursuzWrap) tursuzWrap.style.display = 'block';
+    if (bahisPanel) bahisPanel.style.display = 'none';
+    if (girisUyari) girisUyari.style.display = 'none';
+    if (turSayacWrap) turSayacWrap.style.opacity = '0.3';
+    boyutlandirTursuzCanvas();
+  } else {
+    if (turluWrap) turluWrap.style.display = 'block';
+    if (tursuzWrap) tursuzWrap.style.display = 'none';
+    if (kullanici) { if (bahisPanel) bahisPanel.style.display = 'block'; }
+    else { if (girisUyari) girisUyari.style.display = 'block'; }
+    if (turSayacWrap) turSayacWrap.style.opacity = '1';
+    boyutlandirCanvas();
+  }
+}
+
 // ─── TUR SAYACI ───
 function turSayacBaslat() {
   if (turInterval) clearInterval(turInterval);
@@ -183,6 +247,15 @@ socket.on('grafik_guncelle', (data) => {
   animFrame = requestAnimationFrame(animAdim);
 });
 
+socket.on('tursuz_grafik_guncelle', (data) => {
+  tursuzEskiGecmis = tursuzGecmis.slice();
+  tursuzHedefGecmis = data.gecmis || [];
+  const el = document.getElementById('tursuz-grafik-deger');
+  if (el) el.textContent = data.deger.toFixed(2);
+  tursuzAnimBaslangic = null;
+  if (tursuzAnimFrame) cancelAnimationFrame(tursuzAnimFrame);
+  tursuzAnimFrame = requestAnimationFrame(tursuzAnimAdim);
+});
 socket.on('tur_basladi', (data) => {
   turBitis = data.turBitis;
   turSayacBaslat();
@@ -354,6 +427,88 @@ function grafikCiz() {
       ctx.fillText(`Giris: ${aktifPozisyon.girdigiDeger.toFixed(1)}`, padL + 4, girisY - 4);
     }
   }
+}
+
+// ─── TURSUZ GRAFİK ANİMASYON ───
+function tursuzAnimAdim(timestamp) {
+  if (!tursuzAnimBaslangic) tursuzAnimBaslangic = timestamp;
+  const t = Math.min((timestamp - tursuzAnimBaslangic) / ANIM_SURE, 1);
+  const ease = 1 - Math.pow(1 - t, 3);
+  if (tursuzEskiGecmis.length === 0 || tursuzHedefGecmis.length === 0) { tursuzGecmis = tursuzHedefGecmis; tursuzGrafikCiz(); return; }
+  const gecmis = tursuzHedefGecmis.slice(0, -1);
+  const sonH = tursuzHedefGecmis[tursuzHedefGecmis.length - 1];
+  const sonE = tursuzEskiGecmis[tursuzEskiGecmis.length - 1] || sonH;
+  tursuzGecmis = [...gecmis, { deger: sonE.deger + (sonH.deger - sonE.deger) * ease, zaman: sonH.zaman }];
+  tursuzGrafikCiz();
+  if (t < 1) tursuzAnimFrame = requestAnimationFrame(tursuzAnimAdim);
+  else { tursuzGecmis = tursuzHedefGecmis; tursuzGrafikCiz(); }
+}
+
+const TURSUZ_RENK = '56,189,248'; // #38bdf8 mavi
+
+function tursuzGrafikCiz() {
+  if (!tursuzCanvas || !tursuzCtx || tursuzGecmis.length < 2) return;
+  const w = tursuzCanvas.width, h = tursuzCanvas.height;
+  tursuzCtx.clearRect(0, 0, w, h);
+  const degerler = tursuzGecmis.map(g => g.deger);
+  const minD = Math.min(...degerler) * 0.93;
+  const maxD = Math.max(...degerler) * 1.07;
+  const aralik = maxD - minD || 1;
+  const padL = 52, padR = 10, padT = 14, padB = 28;
+  const gW = w - padL - padR, gH = h - padT - padB;
+  const rgb = TURSUZ_RENK;
+
+  // Grid
+  tursuzCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+  tursuzCtx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (gH / 4) * i;
+    tursuzCtx.beginPath(); tursuzCtx.moveTo(padL, y); tursuzCtx.lineTo(padL + gW, y); tursuzCtx.stroke();
+    tursuzCtx.fillStyle = 'rgba(255,255,255,0.3)';
+    tursuzCtx.font = '600 11px JetBrains Mono, monospace';
+    tursuzCtx.textAlign = 'right';
+    tursuzCtx.fillText((maxD - (aralik / 4) * i).toFixed(0), padL - 6, y + 4);
+  }
+
+  // Alan dolgusu
+  const grad = tursuzCtx.createLinearGradient(0, padT, 0, padT + gH);
+  grad.addColorStop(0, `rgba(${rgb},0.18)`);
+  grad.addColorStop(1, `rgba(${rgb},0.01)`);
+  tursuzCtx.beginPath();
+  tursuzGecmis.forEach((p, i) => {
+    const x = padL + (i / (tursuzGecmis.length - 1)) * gW;
+    const y = padT + gH - ((p.deger - minD) / aralik) * gH;
+    i === 0 ? tursuzCtx.moveTo(x, y) : tursuzCtx.lineTo(x, y);
+  });
+  const sonD = degerler[degerler.length - 1];
+  tursuzCtx.lineTo(padL + gW, padT + gH); tursuzCtx.lineTo(padL, padT + gH); tursuzCtx.closePath();
+  tursuzCtx.fillStyle = grad; tursuzCtx.fill();
+
+  // Çizgi
+  tursuzCtx.beginPath();
+  tursuzCtx.strokeStyle = `rgb(${rgb})`; tursuzCtx.lineWidth = 2.5;
+  tursuzCtx.lineJoin = 'round'; tursuzCtx.lineCap = 'round';
+  tursuzGecmis.forEach((p, i) => {
+    const x = padL + (i / (tursuzGecmis.length - 1)) * gW;
+    const y = padT + gH - ((p.deger - minD) / aralik) * gH;
+    i === 0 ? tursuzCtx.moveTo(x, y) : tursuzCtx.lineTo(x, y);
+  });
+  tursuzCtx.stroke();
+
+  // Son nokta
+  const lastX = padL + gW;
+  const lastY = padT + gH - ((sonD - minD) / aralik) * gH;
+  tursuzCtx.beginPath(); tursuzCtx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+  tursuzCtx.fillStyle = `rgb(${rgb})`; tursuzCtx.fill();
+  tursuzCtx.strokeStyle = 'rgba(255,255,255,0.6)'; tursuzCtx.lineWidth = 2; tursuzCtx.stroke();
+
+  // Fiyat etiketi
+  tursuzCtx.fillStyle = `rgba(${rgb},0.9)`;
+  tursuzCtx.fillRect(lastX + 6, lastY - 10, 52, 20);
+  tursuzCtx.fillStyle = '#fff';
+  tursuzCtx.font = '700 11px JetBrains Mono, monospace';
+  tursuzCtx.textAlign = 'left';
+  tursuzCtx.fillText(sonD.toFixed(1), lastX + 10, lastY + 4);
 }
 
 function mevcutDegerGuncelle(deger) {

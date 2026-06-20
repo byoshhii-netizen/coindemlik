@@ -13,7 +13,13 @@ class GrafikMotoru {
     // Tur sistemi
     this.turBitis = null;   // ms timestamp
     this.turSuresi = 60;    // saniye (DB'den)
-    this.aktifBahisler = new Map(); // socket_id -> bahis bilgisi (sunucu taraflı zorunlu sat)
+    this.aktifBahisler = new Map();
+
+    // Tursuz grafik
+    this.tursuzDeger = 200;
+    this.tursuzGecmis = [];
+    this.tursuzMomentum = 0;
+    this.tursuzTimer = null;
   }
 
   baslat() {
@@ -24,6 +30,58 @@ class GrafikMotoru {
     this.turSuresi = ayarlar.tur_suresi || 60;
     this.grafAdimAt();
     this.yeniTurBaslat();
+
+    // Tursuz grafik başlat
+    this.tursuzGrafikBaslat();
+  }
+
+  // ─── TURSUZ GRAFİK ───
+  tursuzGrafikBaslat() {
+    const ayar = db.prepare('SELECT * FROM grafik_tursuz_ayar WHERE id = 1').get();
+    if (!ayar) return;
+    const min = ayar.min_deger || 50;
+    const max = ayar.max_deger || 500;
+    this.tursuzDeger = min + (max - min) * 0.4;
+    this.tursuzAdimAt();
+  }
+
+  tursuzAdimAt() {
+    if (this.tursuzTimer) clearTimeout(this.tursuzTimer);
+    const ayar = db.prepare('SELECT * FROM grafik_tursuz_ayar WHERE id = 1').get();
+    if (!ayar) { this.tursuzTimer = setTimeout(() => this.tursuzAdimAt(), 3000); return; }
+
+    const sure = ayar.guncelleme_suresi || 3000;
+    const artmaOrani = ayar.artma_orani || 0.55;
+    const maxDegisim = ayar.max_degisim || 40;
+    const minDeger = ayar.min_deger || 50;
+    const maxDeger = ayar.max_deger || 500;
+    const aralik = maxDeger - minDeger;
+
+    // Hareket hesapla
+    const pozisyon = (this.tursuzDeger - minDeger) / aralik;
+    const pozisyonBaskisi = (pozisyon - 0.5) * 0.3;
+    const efektifArtma = Math.max(0.2, Math.min(0.8, artmaOrani - pozisyonBaskisi));
+    const yonyukari = Math.random() < efektifArtma;
+    const degisimOrani = Math.pow(Math.random(), 1.5);
+    const degisim = degisimOrani * maxDegisim;
+    this.tursuzMomentum = this.tursuzMomentum * 0.65 + (yonyukari ? degisim * 0.35 : -degisim * 0.35);
+    const toplamDegisim = (yonyukari ? degisim : -degisim) + this.tursuzMomentum * 0.4;
+    this.tursuzDeger += toplamDegisim;
+    if (this.tursuzDeger < minDeger) { this.tursuzDeger = minDeger + Math.abs(this.tursuzDeger - minDeger) * 0.3; this.tursuzMomentum = Math.abs(this.tursuzMomentum) * 0.5; }
+    if (this.tursuzDeger > maxDeger) { this.tursuzDeger = maxDeger - Math.abs(this.tursuzDeger - maxDeger) * 0.3; this.tursuzMomentum = -Math.abs(this.tursuzMomentum) * 0.5; }
+    this.tursuzDeger = Math.round(this.tursuzDeger * 100) / 100;
+
+    const zaman = Date.now();
+    this.tursuzGecmis.push({ deger: this.tursuzDeger, zaman });
+    if (this.tursuzGecmis.length > this.maksGecmis) this.tursuzGecmis.shift();
+
+    this.io.emit('tursuz_grafik_guncelle', {
+      deger: this.tursuzDeger,
+      zaman,
+      gecmis: this.tursuzGecmis
+    });
+
+    this.tursuzTimer = setTimeout(() => this.tursuzAdimAt(), sure);
   }
 
   // ─── TUR SİSTEMİ ───
@@ -42,11 +100,8 @@ class GrafikMotoru {
   }
 
   turBitti() {
-    // Aktif tüm bahisleri zorla kapat (sunucu taraflı)
     this.io.emit('tur_bitti');
-    this.turBitis = null; // Yeni tur başlayana kadar engelleme olmasın
-
-    // 2 sn sonra yeni tur
+    this.turBitis = null;
     setTimeout(() => this.yeniTurBaslat(), 2000);
   }
 
@@ -98,10 +153,19 @@ class GrafikMotoru {
   mevcutDegerAl() { return this.mevcutDeger; }
   gecmisAl() { return this.gecmis; }
   turBitisAl() { return this.turBitis; }
+  tursuzDegerAl() { return this.tursuzDeger; }
+  tursuzGecmisAl() { return this.tursuzGecmis; }
+
+  tursuzAyarGuncelle() {
+    // Tursuz grafik ayarları değiştiğinde hızını güncelle (mevcut timer'ı sıfırla)
+    if (this.tursuzTimer) clearTimeout(this.tursuzTimer);
+    this.tursuzAdimAt();
+  }
 
   durdur() {
     if (this.grafTimer) clearTimeout(this.grafTimer);
     if (this.turTimer) clearTimeout(this.turTimer);
+    if (this.tursuzTimer) clearTimeout(this.tursuzTimer);
   }
 }
 

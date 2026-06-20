@@ -70,6 +70,15 @@ db.exec(`
     siradaki_sure INTEGER DEFAULT NULL,
     tur_suresi INTEGER DEFAULT 60
   );
+  CREATE TABLE IF NOT EXISTS grafik_tursuz_ayar (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    aktif INTEGER DEFAULT 0,
+    guncelleme_suresi INTEGER DEFAULT 3000,
+    min_deger REAL DEFAULT 50,
+    max_deger REAL DEFAULT 500,
+    artma_orani REAL DEFAULT 0.55,
+    max_degisim REAL DEFAULT 40
+  );
   CREATE TABLE IF NOT EXISTS para_kopar_ayar (
     id INTEGER PRIMARY KEY DEFAULT 1,
     min_miktar INTEGER DEFAULT 10,
@@ -176,6 +185,12 @@ try { db.exec(`ALTER TABLE grafik_ayarlari ADD COLUMN tur_suresi INTEGER DEFAULT
 try { db.exec(`ALTER TABLE kullanicilar ADD COLUMN celik_kart INTEGER DEFAULT 0`); } catch(e) {}
 try { db.exec(`ALTER TABLE kullanici_itemlari ADD COLUMN aktif INTEGER DEFAULT 0`); } catch(e) {}
 try { db.exec(`ALTER TABLE site_ayarlari ADD COLUMN kullanim_kosullari TEXT DEFAULT NULL`); } catch(e) {}
+
+// Tursuz grafik tablosu
+try {
+  const tursuzAyar = db.prepare('SELECT COUNT(*) as c FROM grafik_tursuz_ayar').get();
+  if (tursuzAyar.c === 0) db.prepare('INSERT INTO grafik_tursuz_ayar (id) VALUES (1)').run();
+} catch(e) {}
 
 // Çark tablosu
 try { db.exec(`

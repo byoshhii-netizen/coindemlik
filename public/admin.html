@@ -18,7 +18,8 @@
       </div>
       <nav class="admin-nav">
         <div class="anav-group-label">OYUN</div>
-        <button class="anav-btn aktif" onclick="goster('grafik',this)">Grafik &amp; Tur</button>
+        <button class="anav-btn aktif" onclick="goster('grafik',this)">Grafik &amp; Tur (Turlu)</button>
+        <button class="anav-btn" onclick="goster('tursuzgrafik',this)">Grafik (Tursuz)</button>
         <button class="anav-btn" onclick="goster('duyuru',this)">Duyurular</button>
         <div class="anav-group-label">KULLANICILAR</div>
         <button class="anav-btn" onclick="goster('oyuncular',this)">Oyuncular</button>
@@ -170,6 +171,79 @@
             <button class="admin-btn-uyari" onclick="manuelGrafik()">Uygula</button>
           </div>
 
+        </div>
+      </section>
+
+      <!-- TURSUZ GRAFİK -->
+      <section id="panel-tursuzgrafik" class="admin-panel">
+        <h2 class="admin-h2">Tursuz Grafik Ayarları</h2>
+        <p class="admin-aciklama" style="margin-bottom:16px;">Bu grafik tur sisteminden bağımsız, sürekli akar. Oyun sayfasında "TURSUZ" sekmesinde görünür. Bahis yapılamaz — sadece izleme amaçlı.</p>
+
+        <!-- CANLI GRAFİK -->
+        <div class="admin-kart" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <h3 style="margin:0;border:0;padding:0;color:#38bdf8;">Tursuz Canlı Grafik</h3>
+              <span class="grafik-canli-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;display:inline-block;"></span>
+              <span style="font-size:11px;color:var(--t3);letter-spacing:.08em;">CANLI</span>
+            </div>
+            <span id="adm-tursuz-canli-deger" class="mono" style="font-size:22px;font-weight:800;color:#38bdf8;">—</span>
+          </div>
+          <canvas id="adm-tursuz-grafik-canvas" style="width:100%;display:block;border-radius:8px;background:var(--bg-deep);"></canvas>
+        </div>
+
+        <div class="admin-grid">
+          <div class="admin-kart">
+            <h3 style="color:#38bdf8;">Tursuz Grafik Ayarları</h3>
+            <div class="fg">
+              <label>Durum</label>
+              <select id="tg-aktif">
+                <option value="1">Aktif (görünür)</option>
+                <option value="0" selected>Pasif (gizli)</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Güncelleme Hızı</label>
+              <select id="tg-sure">
+                <option value="2000">Çok Hızlı (2sn)</option>
+                <option value="3000" selected>Hızlı (3sn)</option>
+                <option value="5000">Normal (5sn)</option>
+                <option value="8000">Yavaş (8sn)</option>
+                <option value="15000">Çok Yavaş (15sn)</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Yükseliş / Düşüş Oranı</label>
+              <select id="tg-artma">
+                <option value="0.30">Çok Düşücü (%30)</option>
+                <option value="0.40">Düşücü (%40)</option>
+                <option value="0.50">Dengeli (%50)</option>
+                <option value="0.55" selected>Hafif Yükselen (%55)</option>
+                <option value="0.65">Yükselen (%65)</option>
+                <option value="0.75">Çok Yükselen (%75)</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Dalgalanma</label>
+              <select id="tg-degisim">
+                <option value="10">Çok Sakin</option>
+                <option value="20">Sakin</option>
+                <option value="40" selected>Normal</option>
+                <option value="70">Dalgalı</option>
+                <option value="120">Çok Dalgalı</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Min Değer</label>
+              <input id="tg-min" type="number" value="50" min="10" />
+            </div>
+            <div class="fg">
+              <label>Max Değer</label>
+              <input id="tg-max" type="number" value="500" min="50" />
+            </div>
+            <button class="admin-btn-ana" onclick="tursuzGrafigKaydet()">Kaydet</button>
+            <div id="tursuz-grafik-msg" class="admin-msg" style="display:none;"></div>
+          </div>
         </div>
       </section>
 

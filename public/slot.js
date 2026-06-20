@@ -4,6 +4,19 @@ let slotAyar = null;
 let aktifTip = 'normal';
 let ceviriyor = false;
 
+// Socket bağlantısı — jeton senkronizasyonu
+let socket;
+try {
+  socket = io();
+  socket.on('jeton_guncelle', (data) => {
+    if (kullanici && data.kullanici_id === kullanici.id) {
+      kullanici.jeton = data.jeton;
+      const el = document.getElementById('jeton-miktar');
+      if (el) el.textContent = data.jeton.toLocaleString('tr-TR');
+    }
+  });
+} catch(e) { socket = { on: () => {}, emit: () => {} }; }
+
 // Metin tabanlı semboller — emoji yok
 const SEMBOLLER = {
   normal: [
