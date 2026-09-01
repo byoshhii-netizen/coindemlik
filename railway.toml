@@ -7,3 +7,9 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 healthcheckPath = "/api/state"
 healthcheckTimeout = 30
+startCommand = "./demcoin"
+
+[env]
+PORT = "8080"
+NODE_ENV = "production"
+LOG_LEVEL = "info"
